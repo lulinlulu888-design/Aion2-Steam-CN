@@ -22,6 +22,10 @@ obj/
 *.key
 id_ed25519*
 
+# Published, checksum-verified installer
+!downloads/
+!downloads/Aion2-Steam-CN-v1.2.exe
+
 # Editors / OS
 .vs/
 .vscode/
