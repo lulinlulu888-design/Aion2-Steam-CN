@@ -25,6 +25,7 @@ namespace Aion2CNTool
         [STAThread]
         static void Main(string[] args)
         {
+#if DEBUG
             if (args.Length == 3 && args[0] == "--self-test")
             {
                 try
@@ -49,6 +50,7 @@ namespace Aion2CNTool
                 catch (Exception ex) { File.WriteAllText(args[1], ex.ToString(), Encoding.UTF8); Environment.ExitCode = 1; }
                 return;
             }
+#endif
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new MainForm());
@@ -67,8 +69,10 @@ namespace Aion2CNTool
         readonly Button install = new Button();
         readonly Button restore = new Button();
         readonly Button inspect = new Button();
+#if DEBUG
         bool testMode;
         bool failAfterPayloadForTest;
+#endif
 
         public MainForm()
         {
@@ -318,11 +322,14 @@ namespace Aion2CNTool
 
         void EnsureGameClosed()
         {
+#if DEBUG
             if (testMode) return;
+#endif
             if (Process.GetProcessesByName("AION2").Length > 0 || Process.GetProcessesByName("Aion2-Win64-Shipping").Length > 0)
                 throw new InvalidOperationException("请先完全退出《永恒之塔2》，再执行安装或还原。");
         }
 
+#if DEBUG
         public void RunFileOpsTest(string root)
         {
             testMode = true;
@@ -358,6 +365,7 @@ namespace Aion2CNTool
                 "Steam=" + detectedSteam + Environment.NewLine +
                 "SteamFound=" + (File.Exists(steamMarker) || File.Exists(steamMarker + ".tool_bak")) + Environment.NewLine, Encoding.UTF8);
         }
+#endif
 
         void Install()
         {
@@ -388,7 +396,9 @@ namespace Aion2CNTool
             {
                 WriteState("preparing", hadDat, prePakHash, preDatHash);
                 WritePayload(SteamDat);
+#if DEBUG
                 if (failAfterPayloadForTest) throw new IOException("simulated interruption after payload write");
+#endif
                 WriteTextAtomic(SteamPak, "AION2CN " + ToolVersion + " payload=" + PayloadVersion + "\r\n");
                 if (Hash(SteamDat) != PayloadHash) throw new InvalidDataException("写入后的语言文件校验失败，已取消安装。");
                 WriteState("installed", hadDat, prePakHash, preDatHash);

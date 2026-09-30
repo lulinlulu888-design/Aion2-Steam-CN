@@ -7,8 +7,8 @@ Aion2-Steam-CN 是面向《永恒之塔2》（AION 2）Steam / Global 全球版�
 **[下载 Windows 单文件安装版 v2.0](./downloads/Aion2-Steam-CN-v2.0.exe?raw=1)**
 
 - 文件名：`Aion2-Steam-CN-v2.0.exe`
-- 文件大小：3,659,776 字节（约 3.49 MiB）
-- SHA-256：`FA85DA4981ABD0FE76C1497591AACC5E77AC3FAEADE9A6E2610C8657F6CBE44E`
+- 文件大小：3,657,728 字节（约 3.49 MiB）
+- SHA-256：`474D27851481A5BD570A3850E87EE7CD9435928718FB89977CE7EC49B9AE8686`
 - 工具版本：`2.0.0`
 - 语言包版本：`2026.10.01.1`
 - 支持的游戏构建：`global-152629-2026.10.01`

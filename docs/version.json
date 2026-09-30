@@ -6,8 +6,8 @@
   "supported_pak_sha256": "5BFCDEC64CED073002C9E58210A3C956CCF321A6A69E9474575C79C133B37733",
   "installer": {
     "file": "Aion2-Steam-CN-v2.0.exe",
-    "size": 3659776,
-    "sha256": "FA85DA4981ABD0FE76C1497591AACC5E77AC3FAEADE9A6E2610C8657F6CBE44E",
+    "size": 3657728,
+    "sha256": "474D27851481A5BD570A3850E87EE7CD9435928718FB89977CE7EC49B9AE8686",
     "url": "https://github.com/lulinlulu888-design/Aion2-Steam-CN/raw/refs/heads/main/downloads/Aion2-Steam-CN-v2.0.exe"
   }
 }
