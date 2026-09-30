@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://lulinlulu888-design.github.io/Aion2-Steam-CN/sitemap.xml
