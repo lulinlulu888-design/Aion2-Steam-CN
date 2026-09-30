@@ -1,0 +1,30 @@
+# Game/localization assets are not redistributable from this repository.
+*.pak
+*.dat
+payload/
+optimized/
+
+# Build and test output
+bin/
+obj/
+*.exe
+*.dll
+*.pdb
+*.zip
+*.log
+*.user
+*.suo
+*.aion2cn.*
+
+# Local secrets and keys
+.env
+*.pem
+*.key
+id_ed25519*
+
+# Editors / OS
+.vs/
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
