@@ -15,8 +15,8 @@ using Microsoft.Win32;
 [assembly: AssemblyDescription("台服官方繁中转简体，支持兼容性检测、安全备份与一键还原")]
 [assembly: AssemblyCompany("Aion2CNTool")]
 [assembly: AssemblyProduct("永恒之塔2 一键汉化工具")]
-[assembly: AssemblyVersion("2.0.1.0")]
-[assembly: AssemblyFileVersion("2.0.1.0")]
+[assembly: AssemblyVersion("2.1.0.0")]
+[assembly: AssemblyFileVersion("2.1.0.0")]
 
 namespace Aion2CNTool
 {
@@ -59,16 +59,17 @@ namespace Aion2CNTool
 
     sealed class MainForm : Form
     {
-        const string ToolVersion = "2.0.1";
-        const string PayloadVersion = "2026.10.01.2";
+        const string ToolVersion = "2.1.0";
+        const string PayloadVersion = "2026.10.01.3";
         const string SupportedGameBuild = "global-152629-2026.10.01";
         const string SupportedPakHash = "5BFCDEC64CED073002C9E58210A3C956CCF321A6A69E9474575C79C133B37733";
-        const string PayloadHash = "E5A098BD7908EECD5A89185CFBE5B8307B7FDF5E81C149CA140A56EB843A50A7";
+        const string PayloadHash = "5F4FC5443B496F4D7DEB8A214AE807EF87C6EC78CB8405CD390D8FDB5EBE118F";
         readonly TextBox steam = new TextBox();
         readonly TextBox log = new TextBox();
         readonly Button install = new Button();
         readonly Button restore = new Button();
         readonly Button inspect = new Button();
+        readonly Label statusBanner = new Label();
 #if DEBUG
         bool testMode;
         bool failAfterPayloadForTest;
@@ -77,8 +78,8 @@ namespace Aion2CNTool
         public MainForm()
         {
             Text = "Aion2-Steam-CN v" + ToolVersion;
-            ClientSize = new Size(760, 480);
-            MinimumSize = new Size(720, 460);
+            ClientSize = new Size(760, 530);
+            MinimumSize = new Size(720, 510);
             Font = new Font("Microsoft YaHei UI", 9F);
             StartPosition = FormStartPosition.CenterScreen;
 
@@ -93,7 +94,12 @@ namespace Aion2CNTool
             restore.Text = "一键还原"; restore.SetBounds(345, 158, 135, 38); restore.Click += delegate { SafeRun(Restore); };
             Controls.Add(inspect); Controls.Add(install); Controls.Add(restore);
 
-            log.Multiline = true; log.ReadOnly = true; log.ScrollBars = ScrollBars.Vertical; log.SetBounds(20, 214, 720, 240); log.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            statusBanner.SetBounds(20, 210, 720, 48); statusBanner.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            statusBanner.TextAlign = ContentAlignment.MiddleCenter; statusBanner.Font = new Font(Font.FontFamily, 11F, FontStyle.Bold);
+            statusBanner.BorderStyle = BorderStyle.FixedSingle; Controls.Add(statusBanner);
+            ShowStatus("准备就绪，请先确认兼容性检测结果。", false);
+
+            log.Multiline = true; log.ReadOnly = true; log.ScrollBars = ScrollBars.Vertical; log.SetBounds(20, 274, 720, 230); log.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             log.BackColor = Color.FromArgb(248, 249, 251); Controls.Add(log);
 
             steam.Text = DiscoverSteamClient();
@@ -187,12 +193,19 @@ namespace Aion2CNTool
         void SafeRun(Action action)
         {
             try { UseWaitCursor = true; SetButtons(false); action(); }
-            catch (Exception ex) { Append("错误：" + ex.Message); MessageBox.Show(this, ex.Message, "操作失败", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+            catch (Exception ex) { ShowStatus("操作失败：" + ex.Message, null); Append("错误：" + ex.Message); MessageBox.Show(this, ex.Message, "操作失败", MessageBoxButtons.OK, MessageBoxIcon.Error); }
             finally { UseWaitCursor = false; SetButtons(true); }
         }
 
         void SetButtons(bool value) { inspect.Enabled = value; install.Enabled = value; restore.Enabled = value && File.Exists(StateFile) && File.Exists(BackupPak); }
         void Append(string text) { log.AppendText("[" + DateTime.Now.ToString("HH:mm:ss") + "] " + text + Environment.NewLine); }
+        void ShowStatus(string text, bool? success)
+        {
+            statusBanner.Text = text;
+            if (success == true) { statusBanner.BackColor = Color.FromArgb(224, 247, 232); statusBanner.ForeColor = Color.FromArgb(20, 108, 55); }
+            else if (success == false) { statusBanner.BackColor = Color.FromArgb(242, 244, 247); statusBanner.ForeColor = Color.FromArgb(74, 85, 104); }
+            else { statusBanner.BackColor = Color.FromArgb(255, 235, 235); statusBanner.ForeColor = Color.FromArgb(170, 30, 30); }
+        }
 
         string SteamPak { get { return Path.Combine(steam.Text.Trim(), @"Aion2\Content\Paks\L10N\Text\en-US\pakchunk502000-Windows_0_P.pak"); } }
         string SteamDat { get { return Path.Combine(steam.Text.Trim(), @"Aion2\Content\L10N\Text\en-US\L10NString.dat"); } }
@@ -304,7 +317,7 @@ namespace Aion2CNTool
             string original = FindCompatiblePak();
             if (original != null) Append("全球版构建校验：完全匹配（152,629 条）。");
             else if (File.Exists(SteamPak)) Append("全球版构建校验：版本不同或缺少原始包，安装时将拒绝覆盖。");
-            try { Append(PayloadDigest() == PayloadHash ? "内置优化包校验通过：官方繁中 110,255 条，现有汉化补缺 42,352 条；剧情 NPC 标题已专项复核。" : "内置优化包校验失败，请重新下载安装程序。"); }
+            try { Append(PayloadDigest() == PayloadHash ? "内置优化包校验通过：152,629 条；地图、剧情、物品、技能和 NPC 术语已统一校对。" : "内置优化包校验失败，请重新下载安装程序。"); }
             catch (Exception ex) { Append("内置优化包不可用：" + ex.Message); }
             var state = ReadState(); string status;
             if (state.TryGetValue("status", out status))
@@ -369,6 +382,7 @@ namespace Aion2CNTool
 
         void Install()
         {
+            ShowStatus("正在安全安装语言包，请勿关闭程序……", false);
             EnsureGameClosed();
             if (PayloadDigest() != PayloadHash) throw new InvalidDataException("内置优化语言数据校验失败，请重新下载安装程序。");
             steam.Text = NormalizeClientPath(steam.Text);
@@ -414,8 +428,12 @@ namespace Aion2CNTool
             TryDelete(LegacyStateFile);
             Inspect();
             Append("安装完成：工具 " + ToolVersion + "，语言包 " + PayloadVersion + "，游戏构建 " + SupportedGameBuild + "。");
-            Append("152,629 条文本结构校验通过：官方繁中 110,255 条，汉化补缺 42,352 条，英文安全回退 22 条。");
-            Append("首次进入游戏请重点检查职业名、技能页和任务文本；如异常可立即一键还原。");
+            Append("152,629 条文本结构与占位符校验通过；地图、剧情、物品、技能和 NPC 术语已按国服惯用译名统一。");
+            ShowStatus("✓ 安装完成，可以启动《永恒之塔2》", true);
+#if DEBUG
+            if (!testMode)
+#endif
+                MessageBox.Show(this, "汉化安装完成，可以启动游戏。\n\n如遇到异常，可随时运行本工具并点击“一键还原”。", "安装完成", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         string FindCompatiblePak()
@@ -527,6 +545,7 @@ namespace Aion2CNTool
             finally { TryDelete(rollbackPak); TryDelete(rollbackDat); }
             Inspect();
             Append("已逐字节恢复到首次安装本工具前的状态。备份文件仍保留。");
+            ShowStatus("✓ 已还原到安装前状态", true);
         }
 
         void Run(string exe, string args)
