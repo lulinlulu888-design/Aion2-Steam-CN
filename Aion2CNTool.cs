@@ -15,8 +15,8 @@ using Microsoft.Win32;
 [assembly: AssemblyDescription("台服官方繁中转简体，支持兼容性检测、安全备份与一键还原")]
 [assembly: AssemblyCompany("Aion2CNTool")]
 [assembly: AssemblyProduct("永恒之塔2 一键汉化工具")]
-[assembly: AssemblyVersion("2.0.0.0")]
-[assembly: AssemblyFileVersion("2.0.0.0")]
+[assembly: AssemblyVersion("2.0.1.0")]
+[assembly: AssemblyFileVersion("2.0.1.0")]
 
 namespace Aion2CNTool
 {
@@ -59,11 +59,11 @@ namespace Aion2CNTool
 
     sealed class MainForm : Form
     {
-        const string ToolVersion = "2.0.0";
-        const string PayloadVersion = "2026.10.01.1";
+        const string ToolVersion = "2.0.1";
+        const string PayloadVersion = "2026.10.01.2";
         const string SupportedGameBuild = "global-152629-2026.10.01";
         const string SupportedPakHash = "5BFCDEC64CED073002C9E58210A3C956CCF321A6A69E9474575C79C133B37733";
-        const string PayloadHash = "3F5D372A7D44B169C32018F396DF1263E90B7D17F4CE4BA23CFF6031B27527FB";
+        const string PayloadHash = "E5A098BD7908EECD5A89185CFBE5B8307B7FDF5E81C149CA140A56EB843A50A7";
         readonly TextBox steam = new TextBox();
         readonly TextBox log = new TextBox();
         readonly Button install = new Button();
@@ -304,7 +304,7 @@ namespace Aion2CNTool
             string original = FindCompatiblePak();
             if (original != null) Append("全球版构建校验：完全匹配（152,629 条）。");
             else if (File.Exists(SteamPak)) Append("全球版构建校验：版本不同或缺少原始包，安装时将拒绝覆盖。");
-            try { Append(PayloadDigest() == PayloadHash ? "内置优化包校验通过：官方繁中 110,255 条，现有汉化补缺 42,352 条。" : "内置优化包校验失败，请重新下载安装程序。"); }
+            try { Append(PayloadDigest() == PayloadHash ? "内置优化包校验通过：官方繁中 110,255 条，现有汉化补缺 42,352 条；剧情 NPC 标题已专项复核。" : "内置优化包校验失败，请重新下载安装程序。"); }
             catch (Exception ex) { Append("内置优化包不可用：" + ex.Message); }
             var state = ReadState(); string status;
             if (state.TryGetValue("status", out status))
