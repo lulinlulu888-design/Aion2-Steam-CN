@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "tool_version": "2.0.0",
+  "payload_version": "2026.10.01.1",
+  "supported_game_build": "global-152629-2026.10.01",
+  "supported_pak_sha256": "5BFCDEC64CED073002C9E58210A3C956CCF321A6A69E9474575C79C133B37733",
+  "installer": {
+    "file": "Aion2-Steam-CN-v2.0.exe",
+    "size": 3659776,
+    "sha256": "FA85DA4981ABD0FE76C1497591AACC5E77AC3FAEADE9A6E2610C8657F6CBE44E",
+    "url": "https://github.com/lulinlulu888-design/Aion2-Steam-CN/raw/refs/heads/main/downloads/Aion2-Steam-CN-v2.0.exe"
+  }
+}

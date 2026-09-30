@@ -15,8 +15,8 @@ using Microsoft.Win32;
 [assembly: AssemblyDescription("台服官方繁中转简体，支持兼容性检测、安全备份与一键还原")]
 [assembly: AssemblyCompany("Aion2CNTool")]
 [assembly: AssemblyProduct("永恒之塔2 一键汉化工具")]
-[assembly: AssemblyVersion("1.2.0.0")]
-[assembly: AssemblyFileVersion("1.2.0.0")]
+[assembly: AssemblyVersion("2.0.0.0")]
+[assembly: AssemblyFileVersion("2.0.0.0")]
 
 namespace Aion2CNTool
 {
@@ -57,41 +57,42 @@ namespace Aion2CNTool
 
     sealed class MainForm : Form
     {
+        const string ToolVersion = "2.0.0";
+        const string PayloadVersion = "2026.10.01.1";
+        const string SupportedGameBuild = "global-152629-2026.10.01";
         const string SupportedPakHash = "5BFCDEC64CED073002C9E58210A3C956CCF321A6A69E9474575C79C133B37733";
         const string PayloadHash = "3F5D372A7D44B169C32018F396DF1263E90B7D17F4CE4BA23CFF6031B27527FB";
         readonly TextBox steam = new TextBox();
-        readonly TextBox tw = new TextBox();
         readonly TextBox log = new TextBox();
         readonly Button install = new Button();
         readonly Button restore = new Button();
         readonly Button inspect = new Button();
         bool testMode;
+        bool failAfterPayloadForTest;
 
         public MainForm()
         {
-            Text = "永恒之塔2 一键汉化工具";
-            ClientSize = new Size(760, 520);
-            MinimumSize = new Size(720, 500);
+            Text = "Aion2-Steam-CN v" + ToolVersion;
+            ClientSize = new Size(760, 480);
+            MinimumSize = new Size(720, 460);
             Font = new Font("Microsoft YaHei UI", 9F);
             StartPosition = FormStartPosition.CenterScreen;
 
-            var title = new Label { Text = "永恒之塔2 简体中文工具", Font = new Font(Font.FontFamily, 18F, FontStyle.Bold), AutoSize = true, Left = 20, Top = 18 };
-            var sub = new Label { Text = "台服官方繁中 → 简体中文，并统一《永恒之塔》职业、技能及系统术语", AutoSize = true, Left = 22, Top = 58, ForeColor = Color.DimGray };
+            var title = new Label { Text = "永恒之塔2 Steam版简体中文工具", Font = new Font(Font.FontFamily, 18F, FontStyle.Bold), AutoSize = true, Left = 20, Top = 18 };
+            var sub = new Label { Text = "工具 v" + ToolVersion + " · 语言包 " + PayloadVersion + " · 自动备份并支持一键还原", AutoSize = true, Left = 22, Top = 58, ForeColor = Color.DimGray };
             Controls.Add(title); Controls.Add(sub);
 
-            AddPathRow("Steam / Global 客户端", steam, 92, BrowseSteam);
-            AddPathRow("台服客户端（繁中来源）", tw, 142, BrowseTw);
+            AddPathRow("Steam / Global 客户端", steam, 108, BrowseSteam);
 
-            inspect.Text = "检测兼容性"; inspect.SetBounds(20, 198, 135, 38); inspect.Click += delegate { SafeRun(Inspect); };
-            install.Text = "一键安装 / 更新"; install.SetBounds(170, 198, 160, 38); install.BackColor = Color.FromArgb(38, 116, 221); install.ForeColor = Color.White; install.FlatStyle = FlatStyle.Flat; install.Click += delegate { SafeRun(Install); };
-            restore.Text = "一键还原"; restore.SetBounds(345, 198, 135, 38); restore.Click += delegate { SafeRun(Restore); };
+            inspect.Text = "重新检测"; inspect.SetBounds(20, 158, 135, 38); inspect.Click += delegate { SafeRun(Inspect); };
+            install.Text = "一键安装 / 更新"; install.SetBounds(170, 158, 160, 38); install.BackColor = Color.FromArgb(38, 116, 221); install.ForeColor = Color.White; install.FlatStyle = FlatStyle.Flat; install.Click += delegate { SafeRun(Install); };
+            restore.Text = "一键还原"; restore.SetBounds(345, 158, 135, 38); restore.Click += delegate { SafeRun(Restore); };
             Controls.Add(inspect); Controls.Add(install); Controls.Add(restore);
 
-            log.Multiline = true; log.ReadOnly = true; log.ScrollBars = ScrollBars.Vertical; log.SetBounds(20, 254, 720, 240); log.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            log.Multiline = true; log.ReadOnly = true; log.ScrollBars = ScrollBars.Vertical; log.SetBounds(20, 214, 720, 240); log.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             log.BackColor = Color.FromArgb(248, 249, 251); Controls.Add(log);
 
             steam.Text = DiscoverSteamClient();
-            tw.Text = DiscoverTwClient();
             Shown += delegate { SafeRun(Inspect); };
         }
 
@@ -127,21 +128,6 @@ namespace Aion2CNTool
             return @"C:\Program Files (x86)\Steam\steamapps\common\AION2";
         }
 
-        string DiscoverTwClient()
-        {
-            var candidates = new List<string>();
-            foreach (DriveInfo drive in DriveInfo.GetDrives())
-            {
-                if (!drive.IsReady || drive.DriveType == DriveType.CDRom) continue;
-                AddCandidate(candidates, Path.Combine(drive.RootDirectory.FullName, @"Program Files (x86)\NCSOFT\AION2_TW"));
-                AddCandidate(candidates, Path.Combine(drive.RootDirectory.FullName, @"Program Files\NCSOFT\AION2_TW"));
-                AddCandidate(candidates, Path.Combine(drive.RootDirectory.FullName, @"NCSOFT\AION2_TW"));
-            }
-            foreach (string client in candidates)
-                if (File.Exists(Path.Combine(client, @"Aion2\Content\Paks\L10N\Text\zh-TW\pakchunk504000-Windows_0_P.pak"))) return client;
-            return @"C:\Program Files (x86)\NCSOFT\AION2_TW";
-        }
-
         static string ReadRegistryString(RegistryKey root, string subKey, string name)
         {
             try { using (RegistryKey key = root.OpenSubKey(subKey)) return key == null ? null : key.GetValue(name) as string; }
@@ -165,10 +151,33 @@ namespace Aion2CNTool
         }
 
         void BrowseSteam(object sender, EventArgs e) { BrowseInto(steam); }
-        void BrowseTw(object sender, EventArgs e) { BrowseInto(tw); }
         void BrowseInto(TextBox target)
         {
-            using (var f = new FolderBrowserDialog()) { f.SelectedPath = target.Text; if (f.ShowDialog(this) == DialogResult.OK) target.Text = f.SelectedPath; }
+            using (var f = new FolderBrowserDialog())
+            {
+                f.Description = "请选择 Steam 的 AION2 游戏根目录";
+                f.SelectedPath = Directory.Exists(target.Text) ? target.Text : Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+                if (f.ShowDialog(this) == DialogResult.OK)
+                {
+                    target.Text = NormalizeClientPath(f.SelectedPath);
+                    SafeRun(Inspect);
+                }
+            }
+        }
+
+        string NormalizeClientPath(string selected)
+        {
+            if (String.IsNullOrWhiteSpace(selected)) return selected;
+            DirectoryInfo current;
+            try { current = new DirectoryInfo(Path.GetFullPath(selected.Trim().Trim('"'))); }
+            catch { return selected; }
+            for (int i = 0; i < 7 && current != null; i++, current = current.Parent)
+            {
+                if (Directory.Exists(Path.Combine(current.FullName, @"Aion2\Content"))) return current.FullName;
+                string child = Path.Combine(current.FullName, "AION2");
+                if (Directory.Exists(Path.Combine(child, @"Aion2\Content"))) return child;
+            }
+            return selected;
         }
 
         void SafeRun(Action action)
@@ -178,14 +187,17 @@ namespace Aion2CNTool
             finally { UseWaitCursor = false; SetButtons(true); }
         }
 
-        void SetButtons(bool value) { inspect.Enabled = value; install.Enabled = value; restore.Enabled = value; }
+        void SetButtons(bool value) { inspect.Enabled = value; install.Enabled = value; restore.Enabled = value && File.Exists(StateFile) && File.Exists(BackupPak); }
         void Append(string text) { log.AppendText("[" + DateTime.Now.ToString("HH:mm:ss") + "] " + text + Environment.NewLine); }
 
         string SteamPak { get { return Path.Combine(steam.Text.Trim(), @"Aion2\Content\Paks\L10N\Text\en-US\pakchunk502000-Windows_0_P.pak"); } }
         string SteamDat { get { return Path.Combine(steam.Text.Trim(), @"Aion2\Content\L10N\Text\en-US\L10NString.dat"); } }
-        string TwPak { get { return Path.Combine(tw.Text.Trim(), @"Aion2\Content\Paks\L10N\Text\zh-TW\pakchunk504000-Windows_0_P.pak"); } }
-        string BackupPak { get { return SteamPak + ".aion2cn.original"; } }
-        string BackupDat { get { return SteamDat + ".aion2cn.original"; } }
+        string BackupPak { get { return SteamPak + ".aion2cn.v2.backup"; } }
+        string BackupDat { get { return SteamDat + ".aion2cn.v2.backup"; } }
+        string LegacyBackupPak { get { return SteamPak + ".aion2cn.original"; } }
+        string LegacyBackupDat { get { return SteamDat + ".aion2cn.original"; } }
+        string LegacyStateFile { get { return Path.Combine(Path.GetDirectoryName(SteamDat), "Aion2CNTool.install.json"); } }
+        string StateFile { get { return Path.Combine(Path.GetDirectoryName(SteamDat), "Aion2CNTool.state"); } }
         const string PayloadResource = "Aion2CNTool.Payload.L10NString.dat";
         string ExternalPayloadDat { get { return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"payload\L10NString.dat"); } }
 
@@ -210,30 +222,98 @@ namespace Aion2CNTool
         void WritePayload(string destination)
         {
             string pending = destination + ".aion2cn.pending";
-            using (Stream source = OpenPayload())
-            using (var output = new FileStream(pending, FileMode.Create, FileAccess.Write, FileShare.None)) source.CopyTo(output);
-            if (Hash(pending) != PayloadHash) { File.Delete(pending); throw new InvalidDataException("内置优化语言数据校验失败，请重新下载安装程序。"); }
+            try
+            {
+                using (Stream source = OpenPayload())
+                using (var output = new FileStream(pending, FileMode.Create, FileAccess.Write, FileShare.None)) { source.CopyTo(output); output.Flush(true); }
+                if (Hash(pending) != PayloadHash) throw new InvalidDataException("内置优化语言数据校验失败，请重新下载安装程序。");
+                AtomicReplace(pending, destination);
+            }
+            finally { TryDelete(pending); }
+        }
+
+        void WriteTextAtomic(string destination, string value)
+        {
+            string pending = destination + ".aion2cn.pending";
+            try
+            {
+                File.WriteAllText(pending, value, new UTF8Encoding(false));
+                AtomicReplace(pending, destination);
+            }
+            finally { TryDelete(pending); }
+        }
+
+        static void AtomicReplace(string pending, string destination)
+        {
+            if (File.Exists(destination))
+            {
+                try { File.Replace(pending, destination, null, true); return; }
+                catch (PlatformNotSupportedException) { }
+                catch (IOException) { }
+            }
             File.Copy(pending, destination, true);
-            File.Delete(pending);
+        }
+
+        static void TryDelete(string path) { try { if (File.Exists(path)) File.Delete(path); } catch { } }
+
+        Dictionary<string, string> ReadState()
+        {
+            var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            if (!File.Exists(StateFile)) return values;
+            foreach (string raw in File.ReadAllLines(StateFile, Encoding.UTF8))
+            {
+                int at = raw.IndexOf('=');
+                if (at > 0) values[raw.Substring(0, at).Trim()] = raw.Substring(at + 1).Trim();
+            }
+            return values;
+        }
+
+        void WriteState(string status, bool hadDat, string prePakHash, string preDatHash)
+        {
+            string content =
+                "format=2\r\n" +
+                "status=" + status + "\r\n" +
+                "tool_version=" + ToolVersion + "\r\n" +
+                "payload_version=" + PayloadVersion + "\r\n" +
+                "game_build=" + SupportedGameBuild + "\r\n" +
+                "installed_utc=" + DateTime.UtcNow.ToString("o") + "\r\n" +
+                "had_dat=" + hadDat.ToString() + "\r\n" +
+                "pre_pak_hash=" + (prePakHash ?? "") + "\r\n" +
+                "pre_dat_hash=" + (preDatHash ?? "") + "\r\n" +
+                "payload_hash=" + PayloadHash + "\r\n";
+            WriteTextAtomic(StateFile, content);
+        }
+
+        static bool StateBool(Dictionary<string, string> state, string key)
+        {
+            string value; return state.TryGetValue(key, out value) && String.Equals(value, "True", StringComparison.OrdinalIgnoreCase);
         }
 
         void Inspect()
         {
             log.Clear();
-            Append(File.Exists(SteamPak) ? "已找到 Steam 英文语言包。" : "未找到 Steam 英文语言包：" + SteamPak);
-            Append(File.Exists(TwPak) ? "已找到台服官方繁体中文语言包。" : "未找到台服繁中语言包：" + TwPak);
-            if (File.Exists(TwPak) && File.Exists(SteamPak))
-            {
-                var source = File.GetLastWriteTime(TwPak); var target = File.GetLastWriteTime(SteamPak);
-                Append("繁中来源日期：" + source.ToString("yyyy-MM-dd") + "；Steam 语言包日期：" + target.ToString("yyyy-MM-dd"));
-                if (source.Date < target.Date) Append("来源策略：台服繁中优先；全球版新增文本由现有汉化补缺，无法安全迁移的条目回退英文。");
-                else Append("兼容性：版本日期匹配，可进行安装测试。");
-            }
-            string original = FindOriginalPak();
-            if (File.Exists(original)) Append(Hash(original) == SupportedPakHash ? "全球版构建校验：完全匹配（152,629 条）。" : "全球版构建校验：版本不同，安装时将拒绝覆盖。");
+            steam.Text = NormalizeClientPath(steam.Text);
+            Append("工具版本：" + ToolVersion + "；语言包版本：" + PayloadVersion + "；目标构建：" + SupportedGameBuild + "。");
+            if (!Directory.Exists(steam.Text.Trim())) Append("未找到 Steam 游戏目录。请点击“浏览…”手工选择 AION2 根目录。");
+            else Append("游戏目录：" + steam.Text.Trim());
+            Append(File.Exists(SteamPak) ? "已找到 Steam 语言包入口。" : "未找到语言包入口：" + SteamPak);
+            string original = FindCompatiblePak();
+            if (original != null) Append("全球版构建校验：完全匹配（152,629 条）。");
+            else if (File.Exists(SteamPak)) Append("全球版构建校验：版本不同或缺少原始包，安装时将拒绝覆盖。");
             try { Append(PayloadDigest() == PayloadHash ? "内置优化包校验通过：官方繁中 110,255 条，现有汉化补缺 42,352 条。" : "内置优化包校验失败，请重新下载安装程序。"); }
             catch (Exception ex) { Append("内置优化包不可用：" + ex.Message); }
-            Append(File.Exists(BackupPak) ? "检测到本工具备份，可一键还原。" : "尚未创建本工具备份。");
+            var state = ReadState(); string status;
+            if (state.TryGetValue("status", out status))
+            {
+                string installedPayload; state.TryGetValue("payload_version", out installedPayload);
+                if (status == "installed") Append("已安装：语言包 " + installedPayload + "。可更新或一键还原。");
+                else if (status == "restored") Append("当前已还原到安装前状态；可再次安装，原始备份仍受校验保护。");
+                else Append("检测到上次操作未完成；再次安装会自动修复，也可一键还原。");
+            }
+            else if (File.Exists(LegacyStateFile)) Append("检测到旧版工具状态；安装 v" + ToolVersion + " 时会迁移原始备份。");
+            else Append("当前未安装本工具。首次安装会保存安装前状态。");
+            install.Text = state.Count > 0 && status != "restored" ? "修复 / 更新" : "一键安装";
+            restore.Enabled = File.Exists(StateFile) && File.Exists(BackupPak);
         }
 
         void EnsureGameClosed()
@@ -247,53 +327,152 @@ namespace Aion2CNTool
         {
             testMode = true;
             steam.Text = root;
-            string beforePak = Hash(FindOriginalPak());
+            string beforePak = Hash(SteamPak);
             string beforeDat = File.Exists(SteamDat) ? Hash(SteamDat) : null;
             Install();
-            if (!File.Exists(BackupPak) || Hash(SteamDat) != PayloadHash || File.ReadAllText(SteamPak, Encoding.ASCII) != "AION2CN 1.2")
+            if (!File.Exists(BackupPak) || Hash(SteamDat) != PayloadHash || !File.ReadAllText(SteamPak, Encoding.UTF8).StartsWith("AION2CN " + ToolVersion))
                 throw new InvalidDataException("staged install verification failed");
+            string installedPak = Hash(SteamPak); string installedDat = Hash(SteamDat);
+            failAfterPayloadForTest = true;
+            bool interruptedRejected = false;
+            try { Install(); } catch (IOException) { interruptedRejected = true; }
+            finally { failAfterPayloadForTest = false; }
+            if (!interruptedRejected || Hash(SteamPak) != installedPak || Hash(SteamDat) != installedDat)
+                throw new InvalidDataException("interrupted update rollback verification failed");
+            Install();
+            if (Hash(SteamDat) != PayloadHash) throw new InvalidDataException("staged update verification failed");
             Restore();
             if (Hash(SteamPak) != beforePak) throw new InvalidDataException("pak restore verification failed");
             if (beforeDat == null ? File.Exists(SteamDat) : Hash(SteamDat) != beforeDat) throw new InvalidDataException("dat restore verification failed");
+            Install();
+            Restore();
+            if (Hash(SteamPak) != beforePak || (beforeDat == null ? File.Exists(SteamDat) : Hash(SteamDat) != beforeDat))
+                throw new InvalidDataException("reinstall after restore verification failed");
         }
 
         public void RunDiscoveryTest(string output)
         {
             string detectedSteam = steam.Text;
-            string detectedTw = tw.Text;
             string steamMarker = Path.Combine(detectedSteam, @"Aion2\Content\Paks\L10N\Text\en-US\pakchunk502000-Windows_0_P.pak");
-            string twMarker = Path.Combine(detectedTw, @"Aion2\Content\Paks\L10N\Text\zh-TW\pakchunk504000-Windows_0_P.pak");
             File.WriteAllText(output,
                 "Steam=" + detectedSteam + Environment.NewLine +
-                "SteamFound=" + (File.Exists(steamMarker) || File.Exists(steamMarker + ".tool_bak")) + Environment.NewLine +
-                "TW=" + detectedTw + Environment.NewLine +
-                "TWFound=" + File.Exists(twMarker) + Environment.NewLine, Encoding.UTF8);
+                "SteamFound=" + (File.Exists(steamMarker) || File.Exists(steamMarker + ".tool_bak")) + Environment.NewLine, Encoding.UTF8);
         }
 
         void Install()
         {
             EnsureGameClosed();
             if (PayloadDigest() != PayloadHash) throw new InvalidDataException("内置优化语言数据校验失败，请重新下载安装程序。");
-            string original = FindOriginalPak();
-            if (!File.Exists(original)) throw new FileNotFoundException("找不到 Steam 原始英文语言包。", original);
-            if (Hash(original) != SupportedPakHash) throw new InvalidOperationException("Steam 游戏版本与本优化包不匹配。请等待工具更新，禁止强行覆盖。");
-
+            steam.Text = NormalizeClientPath(steam.Text);
+            if (!Directory.Exists(steam.Text.Trim())) throw new DirectoryNotFoundException("找不到 Steam 游戏目录。请点击“浏览…”手工选择 AION2 根目录。");
+            string original = FindCompatiblePak();
+            if (original == null) throw new InvalidOperationException("Steam 游戏版本与语言包 " + PayloadVersion + " 不匹配，或找不到原始英文包。请在 Steam 校验游戏文件后等待工具更新，禁止强行覆盖。");
             Directory.CreateDirectory(Path.GetDirectoryName(SteamDat));
-            if (!File.Exists(BackupPak)) File.Copy(original, BackupPak, false);
-            if (File.Exists(SteamDat) && !File.Exists(BackupDat)) File.Copy(SteamDat, BackupDat, false);
-            WritePayload(SteamDat);
-            File.WriteAllText(SteamPak, "AION2CN 1.2", Encoding.ASCII);
-            File.WriteAllText(Path.Combine(Path.GetDirectoryName(SteamDat), "Aion2CNTool.install.json"),
-                "{\"version\":\"1.2\",\"installed\":\"" + DateTime.UtcNow.ToString("o") + "\",\"entries\":152629,\"official_tw\":110255,\"fallback\":42352,\"english\":22}", Encoding.UTF8);
-            Append("安装完成：152,629 条文本结构校验通过。官方繁中 110,255 条，汉化补缺 42,352 条，英文安全回退 22 条。");
+            EnsureFreeSpace();
+            bool newState = !File.Exists(StateFile);
+            bool hadDat = false; string prePakHash = null; string preDatHash = null;
+            if (newState) PrepareBackups(out hadDat, out prePakHash, out preDatHash);
+            else
+            {
+                var state = ReadState();
+                hadDat = StateBool(state, "had_dat");
+                state.TryGetValue("pre_pak_hash", out prePakHash); state.TryGetValue("pre_dat_hash", out preDatHash);
+                ValidateBackups(state);
+            }
+            string rollbackPak = SteamPak + ".aion2cn.rollback";
+            string rollbackDat = SteamDat + ".aion2cn.rollback";
+            bool currentHadDat = File.Exists(SteamDat);
+            File.Copy(SteamPak, rollbackPak, true);
+            if (currentHadDat) File.Copy(SteamDat, rollbackDat, true); else TryDelete(rollbackDat);
+            try
+            {
+                WriteState("preparing", hadDat, prePakHash, preDatHash);
+                WritePayload(SteamDat);
+                if (failAfterPayloadForTest) throw new IOException("simulated interruption after payload write");
+                WriteTextAtomic(SteamPak, "AION2CN " + ToolVersion + " payload=" + PayloadVersion + "\r\n");
+                if (Hash(SteamDat) != PayloadHash) throw new InvalidDataException("写入后的语言文件校验失败，已取消安装。");
+                WriteState("installed", hadDat, prePakHash, preDatHash);
+            }
+            catch
+            {
+                File.Copy(rollbackPak, SteamPak, true);
+                if (currentHadDat) File.Copy(rollbackDat, SteamDat, true); else TryDelete(SteamDat);
+                if (newState) { TryDelete(StateFile); TryDelete(BackupPak); TryDelete(BackupDat); }
+                throw;
+            }
+            finally { TryDelete(rollbackPak); TryDelete(rollbackDat); TryDelete(SteamPak + ".aion2cn.pending"); TryDelete(SteamDat + ".aion2cn.pending"); }
+            TryDelete(LegacyStateFile);
+            Inspect();
+            Append("安装完成：工具 " + ToolVersion + "，语言包 " + PayloadVersion + "，游戏构建 " + SupportedGameBuild + "。");
+            Append("152,629 条文本结构校验通过：官方繁中 110,255 条，汉化补缺 42,352 条，英文安全回退 22 条。");
             Append("首次进入游戏请重点检查职业名、技能页和任务文本；如异常可立即一键还原。");
         }
 
-        string FindOriginalPak()
+        string FindCompatiblePak()
         {
-            if (File.Exists(BackupPak)) return BackupPak;
-            if (File.Exists(SteamPak + ".tool_bak")) return SteamPak + ".tool_bak";
-            return SteamPak;
+            string[] candidates = { SteamPak, SteamPak + ".tool_bak", BackupPak, LegacyBackupPak };
+            foreach (string candidate in candidates)
+                try { if (File.Exists(candidate) && Hash(candidate) == SupportedPakHash) return candidate; } catch { }
+            return null;
+        }
+
+        void PrepareBackups(out bool hadDat, out string prePakHash, out string preDatHash)
+        {
+            if (File.Exists(BackupPak) || File.Exists(BackupDat))
+                throw new InvalidOperationException("发现没有状态文件对应的 v2 备份。为防止覆盖未知备份，请先保留这些文件并联系维护者：" + BackupPak);
+            try
+            {
+                if (File.Exists(LegacyStateFile) && File.Exists(LegacyBackupPak))
+                {
+                    File.Copy(LegacyBackupPak, BackupPak, false);
+                    hadDat = File.Exists(LegacyBackupDat);
+                    if (hadDat) File.Copy(LegacyBackupDat, BackupDat, false);
+                    Append("已迁移 v1.x 原始备份，后续还原将回到旧版工具安装前状态。");
+                }
+                else
+                {
+                    if (!File.Exists(SteamPak)) throw new FileNotFoundException("找不到当前 Steam 语言包入口。", SteamPak);
+                    File.Copy(SteamPak, BackupPak, false);
+                    hadDat = File.Exists(SteamDat);
+                    if (hadDat) File.Copy(SteamDat, BackupDat, false);
+                }
+                prePakHash = Hash(BackupPak);
+                preDatHash = hadDat ? Hash(BackupDat) : null;
+            }
+            catch
+            {
+                TryDelete(BackupPak); TryDelete(BackupDat); throw;
+            }
+        }
+
+        void ValidateBackups(Dictionary<string, string> state)
+        {
+            string format, status, expectedPak;
+            if (!state.TryGetValue("format", out format) || format != "2" ||
+                !state.TryGetValue("status", out status) || (status != "installed" && status != "preparing" && status != "restored") ||
+                !state.TryGetValue("pre_pak_hash", out expectedPak) || String.IsNullOrWhiteSpace(expectedPak))
+                throw new InvalidDataException("安装状态文件不完整或已损坏，已拒绝继续操作。请保留备份并联系维护者。");
+            if (!File.Exists(BackupPak)) throw new FileNotFoundException("原始 PAK 备份缺失，已拒绝继续操作。", BackupPak);
+            if (Hash(BackupPak) != expectedPak) throw new InvalidDataException("原始 PAK 备份校验失败，已拒绝继续操作。");
+            if (StateBool(state, "had_dat"))
+            {
+                if (!File.Exists(BackupDat)) throw new FileNotFoundException("安装前已有语言文件，但对应备份缺失。", BackupDat);
+                string expectedDat; state.TryGetValue("pre_dat_hash", out expectedDat);
+                if (!String.IsNullOrEmpty(expectedDat) && Hash(BackupDat) != expectedDat) throw new InvalidDataException("原有语言文件备份校验失败，已拒绝继续操作。");
+            }
+        }
+
+        void EnsureFreeSpace()
+        {
+            try
+            {
+                string root = Path.GetPathRoot(Path.GetFullPath(SteamDat));
+                var drive = new DriveInfo(root);
+                long required = 20L * 1024L * 1024L;
+                if (drive.AvailableFreeSpace < required) throw new IOException("游戏所在磁盘可用空间不足 20 MiB，无法安全创建备份和临时文件。");
+            }
+            catch (IOException) { throw; }
+            catch (Exception ex) { Append("提示：无法读取磁盘剩余空间（" + ex.Message + "），将继续依赖写入错误保护。"); }
         }
 
         string Hash(string path)
@@ -308,12 +487,36 @@ namespace Aion2CNTool
         void Restore()
         {
             EnsureGameClosed();
-            if (!File.Exists(BackupPak)) throw new FileNotFoundException("没有找到本工具创建的原始语言包备份。", BackupPak);
-            File.Copy(BackupPak, SteamPak, true);
-            if (File.Exists(BackupDat)) File.Copy(BackupDat, SteamDat, true); else if (File.Exists(SteamDat)) File.Delete(SteamDat);
-            string marker = Path.Combine(Path.GetDirectoryName(SteamDat), "Aion2CNTool.install.json");
-            if (File.Exists(marker)) File.Delete(marker);
-            Append("已恢复 Steam 原始语言包。备份文件仍保留，可再次安装。");
+            var state = ReadState();
+            if (state.Count == 0 || !File.Exists(BackupPak)) throw new FileNotFoundException("没有找到完整的安装状态与备份，已拒绝猜测性还原。", BackupPak);
+            ValidateBackups(state);
+            EnsureFreeSpace();
+            string rollbackPak = SteamPak + ".aion2cn.restore.rollback";
+            string rollbackDat = SteamDat + ".aion2cn.restore.rollback";
+            bool currentHadPak = File.Exists(SteamPak), currentHadDat = File.Exists(SteamDat);
+            if (currentHadPak) File.Copy(SteamPak, rollbackPak, true);
+            if (currentHadDat) File.Copy(SteamDat, rollbackDat, true);
+            try
+            {
+                File.Copy(BackupPak, SteamPak, true);
+                if (StateBool(state, "had_dat")) File.Copy(BackupDat, SteamDat, true); else TryDelete(SteamDat);
+                string expectedPak; state.TryGetValue("pre_pak_hash", out expectedPak);
+                if (Hash(SteamPak) != expectedPak) throw new InvalidDataException("还原后的 PAK 校验失败，备份文件仍保留。");
+                string expectedDat; state.TryGetValue("pre_dat_hash", out expectedDat);
+                if (StateBool(state, "had_dat") && Hash(SteamDat) != expectedDat) throw new InvalidDataException("还原后的原有语言文件校验失败，备份文件仍保留。");
+                string prePakHash; state.TryGetValue("pre_pak_hash", out prePakHash);
+                string preDatHash; state.TryGetValue("pre_dat_hash", out preDatHash);
+                WriteState("restored", StateBool(state, "had_dat"), prePakHash, preDatHash);
+            }
+            catch
+            {
+                if (currentHadPak) File.Copy(rollbackPak, SteamPak, true); else TryDelete(SteamPak);
+                if (currentHadDat) File.Copy(rollbackDat, SteamDat, true); else TryDelete(SteamDat);
+                throw;
+            }
+            finally { TryDelete(rollbackPak); TryDelete(rollbackDat); }
+            Inspect();
+            Append("已逐字节恢复到首次安装本工具前的状态。备份文件仍保留。");
         }
 
         void Run(string exe, string args)
