@@ -97,10 +97,10 @@ namespace Aion2CNTool
         static extern bool DestroyIcon(IntPtr handle);
 
         const string ToolVersion = "2.3.0";
-        const string PayloadVersion = "2026.10.01.5";
-        const string SupportedGameBuild = "steam-25636629-global-152629";
-        const string SupportedPakHash = "0C5B33D4B2B5D7A1EBF372CAE9519B18BAAC19BDFCE55D6612A5483F1C03F545";
-        const string PayloadHash = "7F0E7CBF815D02E1F3411613ABCEEF7144472320B9DB5A7B2DB3613C12B0B996";
+        const string PayloadVersion = "2026.10.02.1";
+        const string SupportedGameBuild = "steam-25650019-global-152629";
+        const string SupportedPakHash = "3570F9921E3525ED31E4E2DE35499150F0CECCFE2CC4E61220D7542A015BCDB4";
+        const string PayloadHash = "B83D0501472B7327A8E81750C42F1B770DDBC28A51D8016B158FAAF29FF229F9";
         readonly TextBox steam = new TextBox();
         readonly TextBox log = new TextBox();
         readonly Button install = new Button();
