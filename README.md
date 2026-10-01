@@ -4,9 +4,9 @@
 
 ## 永恒之塔2 汉化下载
 
-**[前往 v2.2.1 正式 Release 下载页面](https://github.com/lulinlulu888-design/Aion2-Steam-CN/releases/tag/v2.2.1)**
+**[前往 v2.2.2 正式 Release 下载页面](https://github.com/lulinlulu888-design/Aion2-Steam-CN/releases/tag/v2.2.2)**
 
-**只需下载一个文件：`Aion2-Steam-CN-v2.2.1.exe`。** 在正式 Release 页面的 **Assets** 中点击该文件即可。
+**只需下载一个文件：`Aion2-Steam-CN-v2.2.2.exe`。** 在正式 Release 页面的 **Assets** 中点击该文件即可。
 
 `Source code (zip)` 和 `Source code (tar.gz)` 是开发者使用的源码压缩包，普通用户无需下载。汉化数据已内置，无需另下语言包；退出游戏后双击 EXE 运行即可。
 
@@ -42,7 +42,7 @@
 
 v2.2.0 起，工具启动时会在后台检查本仓库 GitHub Releases 的最新正式版本。有新版本时，点击“下载并更新工具”，确认后即可自动下载、校验、替换并重启。重启后再点击“安装 / 更新”应用汉化。下载失败或取消不会改变当前工具；离线仍可使用本地安装和还原功能。
 
-旧版 v2.1.0 及更早版本没有更新功能，需要手动下载 v2.2.1 一次；以后可直接在工具内更新。
+旧版 v2.1.0 及更早版本没有更新功能，需要手动下载 v2.2.2 一次；以后可直接在工具内更新。
 
 更新机制、发布要求和测试方法见 [自动更新说明](./docs/UPDATING.md)。
 
