@@ -22,9 +22,11 @@ $compilerArguments = @(
     "/win32manifest:$PSScriptRoot\app.manifest",
     '/reference:System.Windows.Forms.dll',
     '/reference:System.Drawing.dll',
+    '/reference:System.Web.Extensions.dll',
     "/resource:$Payload,Aion2CNTool.Payload.L10NString.dat",
     "/out:$Output",
-    "$PSScriptRoot\Aion2CNTool.cs"
+    "$PSScriptRoot\Aion2CNTool.cs",
+    "$PSScriptRoot\Updater.cs"
 )
 if ($TestBuild) { $compilerArguments += '/define:DEBUG' }
 & $compiler $compilerArguments

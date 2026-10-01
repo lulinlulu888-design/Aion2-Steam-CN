@@ -1,28 +1,32 @@
-# 永恒之塔2 Steam版汉化下载：Aion2-Steam-CN v2.1.0
+# 永恒之塔2 Steam版汉化下载：Aion2-Steam-CN v2.2.0
 
 Aion2-Steam-CN 是面向《永恒之塔2》（AION 2）Steam / Global 全球版的简体中文一键汉化工具。程序以台服官方繁体中文为主要参考，转换为简体中文，并统一剑星、守护星、杀星、弓星、魔道星、精灵星、治愈星、护法星、拳星等《永恒之塔》系列术语。
 
 ## 立即下载
 
-**[前往 v2.1.0 正式 Release 下载页面](https://github.com/lulinlulu888-design/Aion2-Steam-CN/releases/tag/v2.1.0)**
+**[前往 v2.2.0 正式 Release 下载页面](https://github.com/lulinlulu888-design/Aion2-Steam-CN/releases/tag/v2.2.0)**
 
-**只需下载一个文件：`Aion2-Steam-CN-v2.1.0.exe`。** 在正式 Release 页面的 **Assets** 中点击该文件即可。
+**只需下载一个文件：`Aion2-Steam-CN-v2.2.0.exe`。** 在正式 Release 页面的 **Assets** 中点击该文件即可。
 
 `Source code (zip)` 和 `Source code (tar.gz)` 是开发者使用的源码压缩包，普通用户无需下载。汉化数据已内置，无需另下语言包；退出游戏后双击 EXE 运行即可。
 
-- 文件名：`Aion2-Steam-CN-v2.1.0.exe`
-- 文件大小：3,658,240 字节（约 3.49 MiB）
-- SHA-256：`CD4CEC6715A12D0FDF181A0D8783E70B27EB916CA980CDAE3E8C8D167A2AEB49`
-- 工具版本：`2.1.0`
+- 文件名：`Aion2-Steam-CN-v2.2.0.exe`
+- 文件大小：3,671,552 字节（约 3.50 MiB）
+- SHA-256：`0E440167C8C2F0C8B97508187A74FBFEC768F1317DF8A667F11944BD27B72C0C`
+- 工具版本：`2.2.0`
 - 语言包版本：`2026.10.01.3`
 - 支持的游戏构建：`global-152629-2026.10.01`
 - 系统：Windows
 - 当前支持：已验证的 Steam / Global 客户端构建，152,629 条本地化文本
 
+## 后续更新
+
+v2.2.0 启动时会自动检查 GitHub 正式版本。发现新版后点击“下载并更新工具”，确认即可下载、校验并重启；重启后再点击“安装 / 更新”应用汉化。旧版 v2.1.0 用户需手动下载本版一次。网络不可用不影响本地安装和还原。
+
 ## 安装方法
 
 1. 完全退出《永恒之塔2》及游戏进程。
-2. 下载并双击 `Aion2-Steam-CN-v2.1.0.exe`，允许管理员权限。
+2. 下载并双击 `Aion2-Steam-CN-v2.2.0.exe`，允许管理员权限。
 3. 点击“检测兼容性”。
 4. 确认显示“全球版构建校验：完全匹配”和“内置优化包校验通过”。
 5. 点击“一键安装 / 更新”。如需撤销，重新运行工具并点击“一键还原”。

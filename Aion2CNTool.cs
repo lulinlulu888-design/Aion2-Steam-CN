@@ -9,14 +9,15 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
+using System.ComponentModel;
 using Microsoft.Win32;
 
 [assembly: AssemblyTitle("永恒之塔2 一键汉化工具")]
 [assembly: AssemblyDescription("台服官方繁中转简体，支持兼容性检测、安全备份与一键还原")]
 [assembly: AssemblyCompany("Aion2CNTool")]
 [assembly: AssemblyProduct("永恒之塔2 一键汉化工具")]
-[assembly: AssemblyVersion("2.1.0.0")]
-[assembly: AssemblyFileVersion("2.1.0.0")]
+[assembly: AssemblyVersion("2.2.0.0")]
+[assembly: AssemblyFileVersion("2.2.0.0")]
 
 namespace Aion2CNTool
 {
@@ -25,6 +26,12 @@ namespace Aion2CNTool
         [STAThread]
         static void Main(string[] args)
         {
+            if (args.Length == 2 && args[0] == "--apply-update")
+            {
+                try { Updater.Apply(args[1]); }
+                catch (Exception ex) { MessageBox.Show("工具更新未完成，原版本或备份仍保留。\n" + ex.Message, "更新失败", MessageBoxButtons.OK, MessageBoxIcon.Error); Environment.ExitCode = 1; }
+                return;
+            }
 #if DEBUG
             if (args.Length == 3 && args[0] == "--self-test")
             {
@@ -59,7 +66,7 @@ namespace Aion2CNTool
 
     sealed class MainForm : Form
     {
-        const string ToolVersion = "2.1.0";
+        const string ToolVersion = "2.2.0";
         const string PayloadVersion = "2026.10.01.3";
         const string SupportedGameBuild = "global-152629-2026.10.01";
         const string SupportedPakHash = "5BFCDEC64CED073002C9E58210A3C956CCF321A6A69E9474575C79C133B37733";
@@ -70,6 +77,11 @@ namespace Aion2CNTool
         readonly Button restore = new Button();
         readonly Button inspect = new Button();
         readonly Label statusBanner = new Label();
+        readonly Button update = new Button();
+        readonly Label updateStatus = new Label();
+        UpdateRelease availableUpdate;
+        bool checkingUpdate, downloadingUpdate;
+        BackgroundWorker updateWorker;
 #if DEBUG
         bool testMode;
         bool failAfterPayloadForTest;
@@ -93,6 +105,11 @@ namespace Aion2CNTool
             install.Text = "一键安装 / 更新"; install.SetBounds(170, 158, 160, 38); install.BackColor = Color.FromArgb(38, 116, 221); install.ForeColor = Color.White; install.FlatStyle = FlatStyle.Flat; install.Click += delegate { SafeRun(Install); };
             restore.Text = "一键还原"; restore.SetBounds(345, 158, 135, 38); restore.Click += delegate { SafeRun(Restore); };
             Controls.Add(inspect); Controls.Add(install); Controls.Add(restore);
+            update.Text = "检查工具更新"; update.SetBounds(495, 158, 165, 38);
+            update.Click += delegate { if (downloadingUpdate) updateWorker.CancelAsync(); else if (availableUpdate != null) DownloadUpdate(); else CheckUpdate(false); };
+            Controls.Add(update);
+            updateStatus.SetBounds(22, 80, 710, 22); updateStatus.Text = "启动后自动检查 GitHub 更新；离线仍可安装和还原。"; Controls.Add(updateStatus);
+            FormClosing += delegate(object sender, FormClosingEventArgs e) { if (downloadingUpdate) { updateWorker.CancelAsync(); e.Cancel = true; updateStatus.Text = "正在取消下载，请稍后关闭……"; } };
 
             statusBanner.SetBounds(20, 210, 720, 48); statusBanner.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             statusBanner.TextAlign = ContentAlignment.MiddleCenter; statusBanner.Font = new Font(Font.FontFamily, 11F, FontStyle.Bold);
@@ -103,7 +120,61 @@ namespace Aion2CNTool
             log.BackColor = Color.FromArgb(248, 249, 251); Controls.Add(log);
 
             steam.Text = DiscoverSteamClient();
-            Shown += delegate { SafeRun(Inspect); };
+            Shown += delegate { SafeRun(Inspect); CheckUpdate(true); };
+        }
+
+        void CheckUpdate(bool automatic)
+        {
+            if (checkingUpdate || downloadingUpdate) return;
+            checkingUpdate = true; update.Enabled = false; updateStatus.Text = "正在检查 GitHub 正式版本……";
+            var worker = new BackgroundWorker();
+            worker.DoWork += delegate(object sender, DoWorkEventArgs e) { e.Result = Updater.Check(new Version(ToolVersion)); };
+            worker.RunWorkerCompleted += delegate(object sender, RunWorkerCompletedEventArgs e)
+            {
+                checkingUpdate = false;
+                if (IsDisposed || Disposing) { worker.Dispose(); return; }
+                update.Enabled = true;
+                if (e.Error != null)
+                {
+                    updateStatus.Text = "检查更新失败，可稍后重试；本地功能不受影响。";
+                    if (!automatic) MessageBox.Show(this, e.Error.Message, "检查更新失败", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else
+                {
+                    availableUpdate = (UpdateRelease)e.Result;
+                    update.Text = availableUpdate == null ? "检查工具更新" : "下载并更新工具";
+                    updateStatus.Text = availableUpdate == null ? "没有比当前 v" + ToolVersion + " 更新的正式版本。" : "发现 v" + availableUpdate.Version + "，点击“下载并更新工具”。";
+                }
+                worker.Dispose();
+            };
+            worker.RunWorkerAsync();
+        }
+
+        void DownloadUpdate()
+        {
+            if (MessageBox.Show(this, "下载 v" + availableUpdate.Version + " 并重新启动工具？\n工具将保留旧版备份。重启后请点击“安装 / 更新”应用汉化，游戏文件不会自动修改。", "更新工具", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+            downloadingUpdate = true; SetButtons(false); steam.Enabled = false;
+            update.Text = "取消下载"; update.Enabled = true;
+            updateWorker = new BackgroundWorker { WorkerReportsProgress = true, WorkerSupportsCancellation = true };
+            updateWorker.DoWork += delegate(object sender, DoWorkEventArgs e)
+            {
+                try { e.Result = Updater.Stage(availableUpdate, Application.ExecutablePath, delegate { return updateWorker.CancellationPending; }, delegate(int percent) { updateWorker.ReportProgress(percent); }); }
+                catch (OperationCanceledException) { e.Cancel = true; }
+            };
+            updateWorker.ProgressChanged += delegate(object sender, ProgressChangedEventArgs e) { updateStatus.Text = "正在下载工具更新：" + e.ProgressPercentage + "%"; };
+            updateWorker.RunWorkerCompleted += delegate(object sender, RunWorkerCompletedEventArgs e)
+            {
+                downloadingUpdate = false; SetButtons(true); steam.Enabled = true; update.Text = "下载并更新工具";
+                if (e.Cancelled) updateStatus.Text = "下载已取消，当前工具未改变。";
+                else if (e.Error != null) { updateStatus.Text = "更新失败，当前工具未改变，可重试。"; MessageBox.Show(this, e.Error.Message, "更新失败", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+                else
+                {
+                    try { Updater.StartHelper((string)e.Result); Close(); }
+                    catch (Exception ex) { updateStatus.Text = "无法启动更新，请重试。"; MessageBox.Show(this, ex.Message, "更新失败"); }
+                }
+                updateWorker.Dispose();
+            };
+            updateWorker.RunWorkerAsync();
         }
 
         string DiscoverSteamClient()
