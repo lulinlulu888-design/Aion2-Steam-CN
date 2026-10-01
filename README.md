@@ -6,7 +6,9 @@
 
 **[前往 v2.1.0 正式 Release 下载页面](https://github.com/lulinlulu888-design/Aion2-Steam-CN/releases/tag/v2.1.0)**
 
-在页面的 **Assets** 中点击 `Aion2-Steam-CN-v2.1.0.exe` 下载安装包。
+**只需下载一个文件：`Aion2-Steam-CN-v2.1.0.exe`。** 在正式 Release 页面的 **Assets** 中点击该文件即可。
+
+`Source code (zip)` 和 `Source code (tar.gz)` 是开发者使用的源码压缩包，普通用户无需下载。汉化数据已内置，无需另下语言包；退出游戏后双击 EXE 运行即可。
 
 无需解压，退出游戏后双击运行。完整说明、校验值和常见问题见 **[中文下载页](./DOWNLOAD.md)**。
 
