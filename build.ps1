@@ -5,7 +5,9 @@ param(
 
     [string]$Output = (Join-Path $PSScriptRoot 'bin\Aion2-Steam-CN.exe'),
 
-    [switch]$TestBuild
+    [switch]$TestBuild,
+    [string]$CompatibilityData = (Join-Path $PSScriptRoot 'bin\compatibility\reference.gz'),
+    [string]$Repak = (Join-Path (Split-Path -Parent $PSScriptRoot) 'repak\repak.exe')
 )
 
 $ErrorActionPreference = 'Stop'
@@ -15,6 +17,9 @@ if (-not $expectedPayloadHash -or (Get-FileHash -Algorithm SHA256 -LiteralPath $
     throw '语言载荷与源码 PayloadHash 不匹配，已停止打包。请先完成载荷复核并同步版本、哈希。'
 }
 $compiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
+if (!(Test-Path -LiteralPath $CompatibilityData -PathType Leaf) -or !(Test-Path -LiteralPath $Repak -PathType Leaf)) {
+    throw '缺少本地兼容性参考数据或 repak。请先运行 tools/build_compatibility_reference.py，并提供 -CompatibilityData 与 -Repak。'
+}
 if (-not (Test-Path -LiteralPath $compiler)) {
     throw '未找到 .NET Framework 64 位 C# 编译器。'
 }
@@ -30,9 +35,13 @@ $compilerArguments = @(
     '/reference:System.Web.Extensions.dll',
     "/resource:$Payload,Aion2CNTool.Payload.L10NString.dat",
     "/resource:$PSScriptRoot\assets\aion2cn-logo.png,Aion2CNTool.Assets.Logo.png",
+    "/resource:$CompatibilityData,Aion2CNTool.Compatibility.Reference.gz",
+    "/resource:$Repak,Aion2CNTool.Compatibility.Repak.exe",
+    "/resource:$PSScriptRoot\third_party\repak-LICENSE-MIT.txt,Aion2CNTool.Compatibility.Repak.License.txt",
     "/out:$Output",
     "$PSScriptRoot\Aion2CNTool.cs",
-    "$PSScriptRoot\Updater.cs"
+    "$PSScriptRoot\Updater.cs",
+    "$PSScriptRoot\Compatibility.cs"
 )
 if ($TestBuild) { $compilerArguments += '/define:DEBUG' }
 & $compiler $compilerArguments

@@ -16,8 +16,8 @@ using Microsoft.Win32;
 [assembly: AssemblyDescription("《永恒之塔2》Steam / Global 版汉化工具，支持一键安装、更新、备份与还原")]
 [assembly: AssemblyCompany("Aion2CNTool")]
 [assembly: AssemblyProduct("永恒之塔2 汉化工具")]
-[assembly: AssemblyVersion("2.3.0.0")]
-[assembly: AssemblyFileVersion("2.3.0.0")]
+[assembly: AssemblyVersion("2.4.0.0")]
+[assembly: AssemblyFileVersion("2.4.0.0")]
 
 namespace Aion2CNTool
 {
@@ -25,8 +25,12 @@ namespace Aion2CNTool
     {
         protected override void OnPaintBackground(PaintEventArgs e)
         {
-            using (var brush = new System.Drawing.Drawing2D.LinearGradientBrush(ClientRectangle, Color.FromArgb(17, 38, 72), Color.FromArgb(50, 27, 91), 0F))
-                e.Graphics.FillRectangle(brush, ClientRectangle);
+            // Transparent children may request the parent background before docking
+            // assigns a width, or while the window is minimized/resized.
+            Rectangle bounds = ClientRectangle;
+            if (bounds.Width <= 0 || bounds.Height <= 0) return;
+            using (var brush = new System.Drawing.Drawing2D.LinearGradientBrush(bounds, Color.FromArgb(17, 38, 72), Color.FromArgb(50, 27, 91), 0F))
+                e.Graphics.FillRectangle(brush, bounds);
         }
     }
 
@@ -96,7 +100,7 @@ namespace Aion2CNTool
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         static extern bool DestroyIcon(IntPtr handle);
 
-        const string ToolVersion = "2.3.0";
+        const string ToolVersion = "2.4.0";
         const string PayloadVersion = "2026.10.02.1";
         const string SupportedGameBuild = "steam-25650019-global-152629";
         const string SupportedPakHash = "3570F9921E3525ED31E4E2DE35499150F0CECCFE2CC4E61220D7542A015BCDB4";
@@ -112,6 +116,9 @@ namespace Aion2CNTool
         UpdateRelease availableUpdate;
         bool checkingUpdate, downloadingUpdate;
         BackgroundWorker updateWorker;
+        string installedPayloadHash;
+        string installedGameBuild;
+        bool ignorePreviousInstalledDat;
 #if DEBUG
         bool testMode;
         bool failAfterPayloadForTest;
@@ -425,12 +432,12 @@ namespace Aion2CNTool
                 "status=" + status + "\r\n" +
                 "tool_version=" + ToolVersion + "\r\n" +
                 "payload_version=" + PayloadVersion + "\r\n" +
-                "game_build=" + SupportedGameBuild + "\r\n" +
+                "game_build=" + (installedGameBuild ?? SupportedGameBuild) + "\r\n" +
                 "installed_utc=" + DateTime.UtcNow.ToString("o") + "\r\n" +
                 "had_dat=" + hadDat.ToString() + "\r\n" +
                 "pre_pak_hash=" + (prePakHash ?? "") + "\r\n" +
                 "pre_dat_hash=" + (preDatHash ?? "") + "\r\n" +
-                "payload_hash=" + PayloadHash + "\r\n";
+                "payload_hash=" + (installedPayloadHash ?? PayloadHash) + "\r\n";
             WriteTextAtomic(StateFile, content);
         }
 
@@ -449,7 +456,7 @@ namespace Aion2CNTool
             Append(File.Exists(SteamPak) ? "已找到 Steam 语言包入口。" : "未找到语言包入口：" + SteamPak);
             string original = FindCompatiblePak();
             if (original != null) Append("全球版构建校验：完全匹配（152,629 条）。");
-            else if (File.Exists(SteamPak)) Append("全球版构建校验：版本不同或缺少原始包，安装时将拒绝覆盖。");
+            else if (File.Exists(SteamPak)) Append("文件哈希不同：安装时将解包检测源文键值，复用未变化译文；无法解码则停止。不会强行套用旧文本。");
             try { Append(PayloadDigest() == PayloadHash ? "内置优化包校验通过：152,629 条；本版修复八职业技能英文描述，详细核查范围见发布说明。" : "内置优化包校验失败，请重新下载安装程序。"); }
             catch (Exception ex) { Append("内置优化包不可用：" + ex.Message); }
             var state = ReadState(); string status;
@@ -476,6 +483,50 @@ namespace Aion2CNTool
         }
 
 #if DEBUG
+        public void RunAdaptiveFileOpsTest(string root)
+        {
+            if (!File.Exists(Path.Combine(root, "isolated-test.marker"))) throw new InvalidOperationException("Missing isolated test marker");
+            testMode = true; steam.Text = root;
+            string expectedPak = Hash(SteamPak);
+            var state = ReadState(); string previousHash;
+            state.TryGetValue("pre_pak_hash", out previousHash);
+            string stateHashBefore = Hash(StateFile), datHashBefore = Hash(SteamDat);
+            bool restoreRejected = false;
+            try { Restore(); } catch (InvalidOperationException) { restoreRejected = true; }
+            if (!restoreRejected || Hash(SteamPak) != expectedPak) throw new Exception("Must not restore old PAK over new source");
+            failAfterPayloadForTest = true;
+            bool migrationInterrupted = false;
+            try { Install(); } catch (IOException) { migrationInterrupted = true; }
+            finally { failAfterPayloadForTest = false; }
+            if (!migrationInterrupted || Hash(StateFile) != stateHashBefore || Hash(BackupPak) != previousHash || Hash(SteamPak) != expectedPak || Hash(SteamDat) != datHashBefore)
+                throw new Exception("Interrupted backup migration must restore old metadata and current game bytes");
+            Install();
+            var installed = ReadState(); string currentHash;
+            installed.TryGetValue("pre_pak_hash", out currentHash);
+            if (currentHash != expectedPak || Hash(BackupPak) != expectedPak || !IsToolMarker(SteamPak)) throw new Exception("New original backup/marker mismatch");
+            var engine = CompatibilityEngine.Load();
+            var table = engine.Decode(File.ReadAllBytes(SteamDat));
+            bool hasNew = false, hasChanged = false;
+            foreach (Entry entry in table.Rows) { hasNew |= entry.Key == "TEST_NEW_KEY" && entry.Value == "New source {player}"; hasChanged |= entry.Value.EndsWith(" UPDATED {new_variable}"); }
+            if (!hasNew || !hasChanged) throw new Exception("Changed/new values lost during adaptive install");
+            string saved = Hash(SteamDat);
+            failAfterPayloadForTest = true;
+            try { Install(); throw new Exception("Expected interruption"); }
+            catch (IOException) { }
+            finally { failAfterPayloadForTest = false; }
+            if (Hash(SteamDat) != saved || !IsToolMarker(SteamPak)) throw new Exception("Adaptive rollback mismatch");
+            Install(); Restore();
+            if (Hash(SteamPak) != expectedPak || File.Exists(SteamDat)) throw new Exception("Adaptive restore must restore new PAK and remove stale installed loose DAT");
+            bool archivedOld = false;
+            foreach (string folder in Directory.GetDirectories(Path.GetDirectoryName(BackupPak), "cn-history-*"))
+            {
+                string archivedPak = Path.Combine(folder, Path.GetFileName(BackupPak));
+                if (File.Exists(archivedPak) && Hash(archivedPak) == previousHash) archivedOld = true;
+            }
+            if (!archivedOld) throw new Exception("Old generation not preserved");
+            Append("PASS adaptive installation, new backup generation, rollback, update and restore");
+        }
+
         public void RunFileOpsTest(string root)
         {
             testMode = true;
@@ -501,6 +552,12 @@ namespace Aion2CNTool
             Restore();
             if (Hash(SteamPak) != beforePak || (beforeDat == null ? File.Exists(SteamDat) : Hash(SteamDat) != beforeDat))
                 throw new InvalidDataException("reinstall after restore verification failed");
+            string extraPak = Path.Combine(Path.GetDirectoryName(SteamPak), "unsupported-extra.pak");
+            File.WriteAllBytes(extraPak, new byte[0]);
+            bool extraRejected = false;
+            try { Install(); } catch (InvalidOperationException) { extraRejected = true; }
+            finally { File.Delete(extraPak); }
+            if (!extraRejected || Hash(SteamPak) != beforePak) throw new Exception("Extra language PAK must stop installation without modifying source");
         }
 
         public void RunDiscoveryTest(string output)
@@ -520,8 +577,40 @@ namespace Aion2CNTool
             if (PayloadDigest() != PayloadHash) throw new InvalidDataException("内置优化语言数据校验失败，请重新下载安装程序。");
             steam.Text = NormalizeClientPath(steam.Text);
             if (!Directory.Exists(steam.Text.Trim())) throw new DirectoryNotFoundException("找不到 Steam 游戏目录。请点击“浏览…”手工选择 AION2 根目录。");
-            string original = FindCompatiblePak();
-            if (original == null) throw new InvalidOperationException("Steam 游戏版本与语言包 " + PayloadVersion + " 不匹配，或找不到原始英文包。请在 Steam 校验游戏文件后等待工具更新，禁止强行覆盖。");
+            string original = FindSourcePak();
+            if (original == null) throw new InvalidOperationException("找不到当前构建的原始英文 PAK。请先在 Steam 验证游戏文件；禁止使用旧备份冒充新版原文。");
+            string sourceHash = Hash(original);
+            byte[] dynamicPayload = null;
+            if (sourceHash != SupportedPakHash)
+            {
+                Append("正在解包当前英文语言表并逐条核对源文……");
+                var engine = CompatibilityEngine.Load();
+                byte[] translated;
+                using (Stream stream = OpenPayload()) using (var bytes = new MemoryStream()) { stream.CopyTo(bytes); translated = bytes.ToArray(); }
+                var result = engine.Merge(engine.Decode(engine.ReadPak(original, steam.Text.Trim())), engine.Decode(translated));
+                Append(result.Summary);
+                if (result.Reused == 0) throw new InvalidOperationException("没有可安全复用的译文，不会覆盖原语言包。");
+#if DEBUG
+                if (!testMode)
+#endif
+                if ((result.Changed + result.Added + result.Unsafe > 0) && MessageBox.Show(this, result.Summary + "\n\n这些条目可能显示英文。是否安装兼容汉化？", "语言表兼容性检测", MessageBoxButtons.YesNo, MessageBoxIcon.Information) != DialogResult.Yes) return;
+                dynamicPayload = result.Payload;
+            }
+            if (Hash(original) != sourceHash) throw new IOException("检测期间原始语言包发生变化，请等待 Steam 更新完成后重试。");
+            installedPayloadHash = dynamicPayload == null ? PayloadHash : CompatibilityEngine.Digest(dynamicPayload);
+            installedGameBuild = CurrentGameBuild() ?? ("source-sha256-" + sourceHash);
+            using (var migration = BeginBackupMigration(original, sourceHash))
+            {
+                EnsureGameClosed();
+                CurrentGameBuild();
+                if (Hash(original) != sourceHash) throw new IOException("安装前原始语言包发生变化，已取消操作。");
+                InstallPrepared(dynamicPayload);
+                migration.Commit();
+            }
+        }
+
+        void InstallPrepared(byte[] dynamicPayload)
+        {
             Directory.CreateDirectory(Path.GetDirectoryName(SteamDat));
             EnsureFreeSpace();
             bool newState = !File.Exists(StateFile);
@@ -542,12 +631,13 @@ namespace Aion2CNTool
             try
             {
                 WriteState("preparing", hadDat, prePakHash, preDatHash);
-                WritePayload(SteamDat);
+                if (dynamicPayload == null) WritePayload(SteamDat);
+                else WriteDynamicPayload(SteamDat, dynamicPayload, installedPayloadHash);
 #if DEBUG
                 if (failAfterPayloadForTest) throw new IOException("simulated interruption after payload write");
 #endif
                 WriteTextAtomic(SteamPak, "AION2CN " + ToolVersion + " payload=" + PayloadVersion + "\r\n");
-                if (Hash(SteamDat) != PayloadHash) throw new InvalidDataException("写入后的语言文件校验失败，已取消安装。");
+                if (Hash(SteamDat) != installedPayloadHash) throw new InvalidDataException("写入后的语言文件校验失败，已取消安装。");
                 WriteState("installed", hadDat, prePakHash, preDatHash);
             }
             catch
@@ -560,8 +650,8 @@ namespace Aion2CNTool
             finally { TryDelete(rollbackPak); TryDelete(rollbackDat); TryDelete(SteamPak + ".aion2cn.pending"); TryDelete(SteamDat + ".aion2cn.pending"); }
             TryDelete(LegacyStateFile);
             Inspect();
-            Append("安装完成：工具 " + ToolVersion + "，语言包 " + PayloadVersion + "，游戏构建 " + SupportedGameBuild + "。");
-            Append("152,629 条文本结构与占位符校验通过；地图、剧情、物品、技能和 NPC 术语已按国服惯用译名统一。");
+            Append("安装完成：工具 " + ToolVersion + "，参考语言包 " + PayloadVersion + "，来源 " + installedGameBuild + "。");
+            Append(dynamicPayload == null ? "已安装验证过的完整语言载荷。" : "已按当前语言表重新生成并回读验证；新增和变化文本保留当前原文。");
             ShowStatus("✓ 安装完成，可以启动《永恒之塔2》", true);
 #if DEBUG
             if (!testMode)
@@ -571,10 +661,70 @@ namespace Aion2CNTool
 
         string FindCompatiblePak()
         {
-            string[] candidates = { SteamPak, SteamPak + ".tool_bak", BackupPak, LegacyBackupPak };
-            foreach (string candidate in candidates)
-                try { if (File.Exists(candidate) && Hash(candidate) == SupportedPakHash) return candidate; } catch { }
+            string source = FindSourcePak();
+            if (source != null && Hash(source) == SupportedPakHash) return source;
             return null;
+        }
+
+        static bool IsToolMarker(string path)
+        {
+            if (!File.Exists(path) || new FileInfo(path).Length > 1024) return false;
+            return File.ReadAllText(path).StartsWith("AION2CN ", StringComparison.Ordinal);
+        }
+
+        BackupMigration BeginBackupMigration(string original, string sourceHash)
+        {
+            ignorePreviousInstalledDat = false;
+            var state = ReadState(); string previousHash, previousPayload;
+            state.TryGetValue("pre_pak_hash", out previousHash); state.TryGetValue("payload_hash", out previousPayload);
+            if (state.Count == 0 || original != SteamPak || previousHash == sourceHash) return new BackupMigration();
+            ignorePreviousInstalledDat = previousPayload != null && File.Exists(SteamDat) && Hash(SteamDat) == previousPayload;
+            var migration = new BackupMigration(new[] { BackupPak, BackupDat, StateFile }, SteamDat);
+            Append("发现游戏更新：旧备份与状态已分代保留于 " + migration.Archive + "；本次将备份当前原始 PAK。失败会恢复旧状态。");
+            return migration;
+        }
+
+        string CurrentGameBuild()
+        {
+            string path = Path.GetFullPath(Path.Combine(steam.Text.Trim(), "..", "..", "appmanifest_3393110.acf"));
+            if (!File.Exists(path)) return null;
+            string text = File.ReadAllText(path);
+            Match build = Regex.Match(text, "\"buildid\"\\s*\"(\\d+)\"");
+            Match target = Regex.Match(text, "\"TargetBuildID\"\\s*\"(\\d+)\"");
+            Match state = Regex.Match(text, "\"StateFlags\"\\s*\"(\\d+)\"");
+            if (state.Success && state.Groups[1].Value != "4") throw new InvalidOperationException("Steam 客户端正在更新或未就绪，请等待更新完成。");
+            if (target.Success && target.Groups[1].Value != "0" && build.Success && target.Groups[1].Value != build.Groups[1].Value) throw new InvalidOperationException("Steam 目标构建尚未安装完成。");
+            return build.Success ? "steam-" + build.Groups[1].Value : null;
+        }
+
+        string FindSourcePak()
+        {
+            if (!File.Exists(SteamPak)) return null;
+            foreach (string pak in Directory.GetFiles(Path.GetDirectoryName(SteamPak), "*.pak"))
+                if (!String.Equals(Path.GetFullPath(pak), Path.GetFullPath(SteamPak), StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException("英文语言目录出现额外 PAK，当前工具无法确认加载优先级，已停止安装。请等待适配，不能仅按其中一个文件判断兼容性。");
+            string build = CurrentGameBuild();
+            if (!IsToolMarker(SteamPak)) return SteamPak;
+            var state = ReadState(); string savedBuild, expected;
+            state.TryGetValue("game_build", out savedBuild); state.TryGetValue("pre_pak_hash", out expected);
+            if (build != null && savedBuild != build && savedBuild != build + "-global-152629") return null;
+            // Prefer the state-bound original; never select an arbitrary old hash match.
+            if (expected != null && File.Exists(BackupPak) && Hash(BackupPak) == expected && !IsToolMarker(BackupPak)) return BackupPak;
+            if (state.Count > 0) return null;
+            if (File.Exists(LegacyStateFile) && File.Exists(LegacyBackupPak) && !IsToolMarker(LegacyBackupPak)) return LegacyBackupPak;
+            return null;
+        }
+
+        void WriteDynamicPayload(string destination, byte[] payload, string expectedHash)
+        {
+            string pending = destination + ".aion2cn.pending";
+            try
+            {
+                using (var output = new FileStream(pending, FileMode.Create, FileAccess.Write, FileShare.None)) { output.Write(payload, 0, payload.Length); output.Flush(true); }
+                if (Hash(pending) != expectedHash) throw new InvalidDataException("动态语言包写入校验失败。");
+                AtomicReplace(pending, destination);
+            }
+            finally { TryDelete(pending); }
         }
 
         void PrepareBackups(out bool hadDat, out string prePakHash, out string preDatHash)
@@ -594,7 +744,7 @@ namespace Aion2CNTool
                 {
                     if (!File.Exists(SteamPak)) throw new FileNotFoundException("找不到当前 Steam 语言包入口。", SteamPak);
                     File.Copy(SteamPak, BackupPak, false);
-                    hadDat = File.Exists(SteamDat);
+                    hadDat = File.Exists(SteamDat) && !ignorePreviousInstalledDat;
                     if (hadDat) File.Copy(SteamDat, BackupDat, false);
                 }
                 prePakHash = Hash(BackupPak);
@@ -648,6 +798,16 @@ namespace Aion2CNTool
         void Restore()
         {
             EnsureGameClosed();
+            if (File.Exists(SteamPak) && !IsToolMarker(SteamPak))
+            {
+                var currentState = ReadState(); string expected;
+                currentState.TryGetValue("pre_pak_hash", out expected);
+                if (expected != null && Hash(SteamPak) != expected) throw new InvalidOperationException("当前已有新版原始 PAK，拒绝用旧备份覆盖。请保留备份并迁移安装状态。");
+            }
+            string currentBuild = CurrentGameBuild(), savedBuild;
+            ReadState().TryGetValue("game_build", out savedBuild);
+            if (IsToolMarker(SteamPak) && currentBuild != null && savedBuild != currentBuild && savedBuild != currentBuild + "-global-152629")
+                throw new InvalidOperationException("游戏构建已经变化，拒绝还原旧构建备份。请先在 Steam 验证游戏文件。");
             var state = ReadState();
             if (state.Count == 0 || !File.Exists(BackupPak)) throw new FileNotFoundException("没有找到完整的安装状态与备份，已拒绝猜测性还原。", BackupPak);
             ValidateBackups(state);
