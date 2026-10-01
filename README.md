@@ -1,8 +1,8 @@
-# Aion2-Steam-CN
+# Aion2-Steam-CN｜永恒之塔2 Steam 汉化工具
 
-《永恒之塔2》Steam / Global 版简体中文本地化工具。
+《永恒之塔2》（AION 2 / AION2）Steam / Global 版简体中文汉化工具，提供汉化补丁下载、一键安装、更新与还原。
 
-## 下载
+## 永恒之塔2 汉化下载
 
 **[前往 v2.2.1 正式 Release 下载页面](https://github.com/lulinlulu888-design/Aion2-Steam-CN/releases/tag/v2.2.1)**
 
