@@ -1,9 +1,11 @@
-param([switch]$Network)
+param(
+    [switch]$Network,
+    [string]$Fixture = (Join-Path (Split-Path -Parent $PSScriptRoot) 'bin\v2.2.1\Aion2-Steam-CN.exe')
+)
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
 $compiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
-$fixture = Join-Path $repo 'bin\v2.2.1\Aion2-Steam-CN.exe'
-if (-not (Test-Path -LiteralPath $fixture)) { throw '先构建 bin\v2.2.1\Aion2-Steam-CN.exe。' }
+if (-not (Test-Path -LiteralPath $Fixture -PathType Leaf)) { throw "请先构建测试安装包：$Fixture" }
 $runner = Join-Path $repo 'bin\UpdaterTests.exe'
 $fixtureDirectory = Join-Path $repo 'bin\update-fixture'
 New-Item -ItemType Directory -Force -Path $fixtureDirectory | Out-Null

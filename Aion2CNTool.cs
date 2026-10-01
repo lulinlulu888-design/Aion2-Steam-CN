@@ -16,8 +16,8 @@ using Microsoft.Win32;
 [assembly: AssemblyDescription("台服官方繁中转简体，支持兼容性检测、安全备份与一键还原")]
 [assembly: AssemblyCompany("Aion2CNTool")]
 [assembly: AssemblyProduct("永恒之塔2 一键汉化工具")]
-[assembly: AssemblyVersion("2.2.1.0")]
-[assembly: AssemblyFileVersion("2.2.1.0")]
+[assembly: AssemblyVersion("2.2.2.0")]
+[assembly: AssemblyFileVersion("2.2.2.0")]
 
 namespace Aion2CNTool
 {
@@ -66,11 +66,11 @@ namespace Aion2CNTool
 
     sealed class MainForm : Form
     {
-        const string ToolVersion = "2.2.1";
-        const string PayloadVersion = "2026.10.01.4";
-        const string SupportedGameBuild = "global-152629-2026.10.01";
-        const string SupportedPakHash = "5BFCDEC64CED073002C9E58210A3C956CCF321A6A69E9474575C79C133B37733";
-        const string PayloadHash = "F6081296D3D7C3C580E55D37F28A7615430308B7EFDE73C065617A837428C3BA";
+        const string ToolVersion = "2.2.2";
+        const string PayloadVersion = "2026.10.01.5";
+        const string SupportedGameBuild = "steam-25636629-global-152629";
+        const string SupportedPakHash = "0C5B33D4B2B5D7A1EBF372CAE9519B18BAAC19BDFCE55D6612A5483F1C03F545";
+        const string PayloadHash = "7F0E7CBF815D02E1F3411613ABCEEF7144472320B9DB5A7B2DB3613C12B0B996";
         readonly TextBox steam = new TextBox();
         readonly TextBox log = new TextBox();
         readonly Button install = new Button();

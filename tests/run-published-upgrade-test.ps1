@@ -1,6 +1,7 @@
 param(
     [string]$OldInstaller = (Join-Path (Split-Path -Parent $PSScriptRoot) 'downloads\Aion2-Steam-CN-v2.2.0.exe'),
-    [string]$ExpectedVersion = '2.2.1'
+    [string]$ExpectedVersion = '2.2.1',
+    [string]$Candidate
 )
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
@@ -9,5 +10,9 @@ $runner = Join-Path $repo 'bin\PublishedUpgradeTests.exe'
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $runner) | Out-Null
 & $compiler /nologo /target:exe "/out:$runner" (Join-Path $PSScriptRoot 'PublishedUpgradeTests.cs')
 if ($LASTEXITCODE -ne 0) { throw '已发布旧版更新测试编译失败。' }
-& $runner (Resolve-Path -LiteralPath $OldInstaller).Path $ExpectedVersion
+if ($Candidate) {
+    & $runner (Resolve-Path -LiteralPath $OldInstaller).Path $ExpectedVersion (Resolve-Path -LiteralPath $Candidate).Path
+} else {
+    & $runner (Resolve-Path -LiteralPath $OldInstaller).Path $ExpectedVersion
+}
 if ($LASTEXITCODE -ne 0) { throw '已发布旧版更新测试失败，详见上方输出。' }
