@@ -46,11 +46,13 @@ static class UpdaterTests
         Reject(delegate { Updater.Parse(valid.Replace("uploaded", "new"), new Version("2.1.0")); }, "incomplete upload rejected");
         Reject(delegate { Updater.Parse("{}", new Version("2.1.0")); }, "invalid metadata rejected");
 
-        var release = new UpdateRelease { Version = new Version("2.2.0"), Hash = Updater.Hash(fixture), Size = new FileInfo(fixture).Length };
+        var fixtureAssemblyVersion = AssemblyName.GetAssemblyName(fixture).Version;
+        var fixtureVersion = new Version(fixtureAssemblyVersion.Major, fixtureAssemblyVersion.Minor, fixtureAssemblyVersion.Build);
+        var release = new UpdateRelease { Version = fixtureVersion, Hash = Updater.Hash(fixture), Size = new FileInfo(fixture).Length };
         string candidate = Path.Combine(root, "new.exe"), target = Path.Combine(root, "工具 & old.exe"), backup = Path.Combine(root, "previous.exe");
         File.Copy(fixture, candidate); File.WriteAllText(target, "original"); string oldHash = Updater.Hash(target);
         Updater.Verify(candidate, release); assertions++;
-        release.Version = new Version("2.3.0"); Reject(delegate { Updater.Verify(candidate, release); }, "assembly version checked"); release.Version = new Version("2.2.0");
+        release.Version = new Version(fixtureVersion.Major + 1, 0, 0); Reject(delegate { Updater.Verify(candidate, release); }, "assembly version checked"); release.Version = fixtureVersion;
         File.AppendAllText(candidate, "broken");
         Reject(delegate { Updater.ReplaceVerified(candidate, target, backup, oldHash, release); }, "truncated/corrupt file rejected");
         Assert(Updater.Hash(target) == oldHash, "corruption preserves old tool");

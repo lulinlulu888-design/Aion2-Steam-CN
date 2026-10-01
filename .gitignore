@@ -29,10 +29,12 @@ id_ed25519*
 !downloads/Aion2-Steam-CN-v2.0.1.exe
 !downloads/Aion2-Steam-CN-v2.1.0.exe
 !downloads/Aion2-Steam-CN-v2.2.0.exe
+!downloads/Aion2-Steam-CN-v2.2.1.exe
 
 # Editors / OS
 .vs/
 .vscode/
 .idea/
+__pycache__/
 Thumbs.db
 .DS_Store

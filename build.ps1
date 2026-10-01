@@ -9,6 +9,11 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$source = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'Aion2CNTool.cs') -Raw
+$expectedPayloadHash = [regex]::Match($source, 'const string PayloadHash = "([A-F0-9]{64})";').Groups[1].Value
+if (-not $expectedPayloadHash -or (Get-FileHash -Algorithm SHA256 -LiteralPath $Payload).Hash -ne $expectedPayloadHash) {
+    throw '语言载荷与源码 PayloadHash 不匹配，已停止打包。请先完成载荷复核并同步版本、哈希。'
+}
 $compiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 if (-not (Test-Path -LiteralPath $compiler)) {
     throw '未找到 .NET Framework 64 位 C# 编译器。'
