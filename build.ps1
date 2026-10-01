@@ -29,6 +29,7 @@ $compilerArguments = @(
     '/reference:System.Drawing.dll',
     '/reference:System.Web.Extensions.dll',
     "/resource:$Payload,Aion2CNTool.Payload.L10NString.dat",
+    "/resource:$PSScriptRoot\assets\aion2cn-logo.png,Aion2CNTool.Assets.Logo.png",
     "/out:$Output",
     "$PSScriptRoot\Aion2CNTool.cs",
     "$PSScriptRoot\Updater.cs"

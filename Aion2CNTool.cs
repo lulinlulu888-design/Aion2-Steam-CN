@@ -16,11 +16,20 @@ using Microsoft.Win32;
 [assembly: AssemblyDescription("台服官方繁中转简体，支持兼容性检测、安全备份与一键还原")]
 [assembly: AssemblyCompany("Aion2CNTool")]
 [assembly: AssemblyProduct("永恒之塔2 一键汉化工具")]
-[assembly: AssemblyVersion("2.2.2.0")]
-[assembly: AssemblyFileVersion("2.2.2.0")]
+[assembly: AssemblyVersion("2.3.0.0")]
+[assembly: AssemblyFileVersion("2.3.0.0")]
 
 namespace Aion2CNTool
 {
+    sealed class GradientPanel : Panel
+    {
+        protected override void OnPaintBackground(PaintEventArgs e)
+        {
+            using (var brush = new System.Drawing.Drawing2D.LinearGradientBrush(ClientRectangle, Color.FromArgb(17, 38, 72), Color.FromArgb(50, 27, 91), 0F))
+                e.Graphics.FillRectangle(brush, ClientRectangle);
+        }
+    }
+
     static class Program
     {
         [STAThread]
@@ -33,6 +42,24 @@ namespace Aion2CNTool
                 return;
             }
 #if DEBUG
+            if (args.Length == 2 && args[0] == "--ui-snapshot")
+            {
+                try
+                {
+                    using (var form = new MainForm())
+                    using (var bitmap = new Bitmap(form.ClientSize.Width, form.ClientSize.Height))
+                    {
+                        form.StartPosition = FormStartPosition.Manual;
+                        form.Location = new Point(-32000, -32000);
+                        form.Show(); Application.DoEvents();
+                        form.DrawToBitmap(bitmap, new Rectangle(Point.Empty, form.ClientSize));
+                        bitmap.Save(args[1], System.Drawing.Imaging.ImageFormat.Png);
+                        form.Close();
+                    }
+                }
+                catch (Exception ex) { File.WriteAllText(args[1] + ".error.txt", ex.ToString(), Encoding.UTF8); Environment.ExitCode = 1; }
+                return;
+            }
             if (args.Length == 3 && args[0] == "--self-test")
             {
                 try
@@ -66,7 +93,10 @@ namespace Aion2CNTool
 
     sealed class MainForm : Form
     {
-        const string ToolVersion = "2.2.2";
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        static extern bool DestroyIcon(IntPtr handle);
+
+        const string ToolVersion = "2.3.0";
         const string PayloadVersion = "2026.10.01.5";
         const string SupportedGameBuild = "steam-25636629-global-152629";
         const string SupportedPakHash = "0C5B33D4B2B5D7A1EBF372CAE9519B18BAAC19BDFCE55D6612A5483F1C03F545";
@@ -90,37 +120,69 @@ namespace Aion2CNTool
         public MainForm()
         {
             Text = "Aion2-Steam-CN v" + ToolVersion;
-            ClientSize = new Size(760, 530);
-            MinimumSize = new Size(720, 510);
+            ClientSize = new Size(840, 620);
+            MinimumSize = new Size(780, 570);
             Font = new Font("Microsoft YaHei UI", 9F);
             StartPosition = FormStartPosition.CenterScreen;
+            BackColor = Color.FromArgb(14, 20, 35);
+            ForeColor = Color.FromArgb(225, 232, 244);
+            Icon = LoadAppIcon();
 
-            var title = new Label { Text = "永恒之塔2 Steam版简体中文工具", Font = new Font(Font.FontFamily, 18F, FontStyle.Bold), AutoSize = true, Left = 20, Top = 18 };
-            var sub = new Label { Text = "工具 v" + ToolVersion + " · 语言包 " + PayloadVersion + " · 自动备份并支持一键还原", AutoSize = true, Left = 22, Top = 58, ForeColor = Color.DimGray };
-            Controls.Add(title); Controls.Add(sub);
+            var header = new GradientPanel { Dock = DockStyle.Top, Height = 116 };
+            var logo = new PictureBox { Left = 22, Top = 14, Width = 86, Height = 86, SizeMode = PictureBoxSizeMode.Zoom, BackColor = Color.Transparent, Image = LoadLogo() };
+            var title = new Label { Text = "AION 2  简体中文工具", Font = new Font(Font.FontFamily, 20F, FontStyle.Bold), AutoSize = true, Left = 122, Top = 21, ForeColor = Color.White, BackColor = Color.Transparent };
+            var sub = new Label { Text = "Steam / Global  ·  安全安装、更新与一键还原", AutoSize = true, Left = 124, Top = 61, ForeColor = Color.FromArgb(174, 201, 235), BackColor = Color.Transparent };
+            var version = new Label { Text = "工具 v" + ToolVersion + "   语言包 " + PayloadVersion, AutoSize = true, Left = 124, Top = 84, ForeColor = Color.FromArgb(125, 232, 255), BackColor = Color.Transparent };
+            header.Controls.Add(logo); header.Controls.Add(title); header.Controls.Add(sub); header.Controls.Add(version); Controls.Add(header);
 
-            AddPathRow("Steam / Global 客户端", steam, 108, BrowseSteam);
+            AddPathRow("游戏客户端目录", steam, 151, BrowseSteam);
 
-            inspect.Text = "重新检测"; inspect.SetBounds(20, 158, 135, 38); inspect.Click += delegate { SafeRun(Inspect); };
-            install.Text = "一键安装 / 更新"; install.SetBounds(170, 158, 160, 38); install.BackColor = Color.FromArgb(38, 116, 221); install.ForeColor = Color.White; install.FlatStyle = FlatStyle.Flat; install.Click += delegate { SafeRun(Install); };
-            restore.Text = "一键还原"; restore.SetBounds(345, 158, 135, 38); restore.Click += delegate { SafeRun(Restore); };
+            inspect.Text = "重新检测"; inspect.SetBounds(20, 202, 138, 42); StyleButton(inspect, Color.FromArgb(45, 57, 81)); inspect.Click += delegate { SafeRun(Inspect); };
+            install.Text = "安装 / 更新汉化"; install.SetBounds(172, 202, 180, 42); StyleButton(install, Color.FromArgb(40, 128, 230)); install.Click += delegate { SafeRun(Install); };
+            restore.Text = "一键还原"; restore.SetBounds(366, 202, 138, 42); StyleButton(restore, Color.FromArgb(45, 57, 81)); restore.Click += delegate { SafeRun(Restore); };
             Controls.Add(inspect); Controls.Add(install); Controls.Add(restore);
-            update.Text = "检查工具更新"; update.SetBounds(495, 158, 165, 38);
+            update.Text = "检查工具更新"; update.SetBounds(518, 202, 175, 42); StyleButton(update, Color.FromArgb(91, 66, 180));
             update.Click += delegate { if (downloadingUpdate) updateWorker.CancelAsync(); else if (availableUpdate != null) DownloadUpdate(); else CheckUpdate(false); };
             Controls.Add(update);
-            updateStatus.SetBounds(22, 80, 710, 22); updateStatus.Text = "启动后自动检查 GitHub 更新；离线仍可安装和还原。"; Controls.Add(updateStatus);
+            updateStatus.SetBounds(22, 253, 790, 22); updateStatus.ForeColor = Color.FromArgb(146, 163, 190); updateStatus.Text = "启动后自动检查 GitHub 正式版本；离线仍可安装和还原。"; Controls.Add(updateStatus);
             FormClosing += delegate(object sender, FormClosingEventArgs e) { if (downloadingUpdate) { updateWorker.CancelAsync(); e.Cancel = true; updateStatus.Text = "正在取消下载，请稍后关闭……"; } };
 
-            statusBanner.SetBounds(20, 210, 720, 48); statusBanner.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            statusBanner.SetBounds(20, 282, 800, 52); statusBanner.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             statusBanner.TextAlign = ContentAlignment.MiddleCenter; statusBanner.Font = new Font(Font.FontFamily, 11F, FontStyle.Bold);
-            statusBanner.BorderStyle = BorderStyle.FixedSingle; Controls.Add(statusBanner);
+            statusBanner.Padding = new Padding(12, 0, 12, 0); Controls.Add(statusBanner);
             ShowStatus("准备就绪，请先确认兼容性检测结果。", false);
 
-            log.Multiline = true; log.ReadOnly = true; log.ScrollBars = ScrollBars.Vertical; log.SetBounds(20, 274, 720, 230); log.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-            log.BackColor = Color.FromArgb(248, 249, 251); Controls.Add(log);
+            var logTitle = new Label { Text = "运行记录", AutoSize = true, Left = 20, Top = 350, Font = new Font(Font.FontFamily, 10F, FontStyle.Bold), ForeColor = Color.FromArgb(191, 207, 231) }; Controls.Add(logTitle);
+            log.Multiline = true; log.ReadOnly = true; log.ScrollBars = ScrollBars.Vertical; log.BorderStyle = BorderStyle.None; log.SetBounds(20, 378, 800, 220); log.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            log.BackColor = Color.FromArgb(21, 29, 48); log.ForeColor = Color.FromArgb(198, 211, 230); log.Font = new Font("Consolas", 9F); Controls.Add(log);
 
             steam.Text = DiscoverSteamClient();
             Shown += delegate { SafeRun(Inspect); CheckUpdate(true); };
+        }
+
+        static Image LoadLogo()
+        {
+            using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Aion2CNTool.Assets.Logo.png"))
+                return stream == null ? null : new Bitmap(stream);
+        }
+
+        static Icon LoadAppIcon()
+        {
+            using (Image image = LoadLogo())
+            using (var bitmap = new Bitmap(image, new Size(64, 64)))
+            {
+                IntPtr handle = bitmap.GetHicon();
+                try { return (Icon)Icon.FromHandle(handle).Clone(); }
+                finally { DestroyIcon(handle); }
+            }
+        }
+
+        static void StyleButton(Button button, Color color)
+        {
+            button.FlatStyle = FlatStyle.Flat; button.FlatAppearance.BorderSize = 0;
+            button.BackColor = color; button.ForeColor = Color.White;
+            button.Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Bold);
+            button.Cursor = Cursors.Hand;
         }
 
         void CheckUpdate(bool automatic)
@@ -225,9 +287,9 @@ namespace Aion2CNTool
 
         void AddPathRow(string caption, TextBox box, int top, EventHandler browse)
         {
-            var label = new Label { Text = caption, Left = 20, Top = top, Width = 185 };
-            box.SetBounds(205, top - 4, 455, 28); box.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-            var button = new Button { Text = "浏览…" }; button.SetBounds(670, top - 5, 70, 29); button.Anchor = AnchorStyles.Top | AnchorStyles.Right; button.Click += browse;
+            var label = new Label { Text = caption, Left = 20, Top = top + 5, Width = 145, ForeColor = Color.FromArgb(182, 198, 221) };
+            box.SetBounds(166, top, 566, 30); box.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right; box.BackColor = Color.FromArgb(36, 50, 79); box.ForeColor = Color.White; box.BorderStyle = BorderStyle.FixedSingle; box.Font = new Font("Microsoft YaHei UI", 9F);
+            var button = new Button { Text = "浏览…" }; button.SetBounds(744, top - 1, 76, 31); button.Anchor = AnchorStyles.Top | AnchorStyles.Right; StyleButton(button, Color.FromArgb(45, 57, 81)); button.Click += browse;
             Controls.Add(label); Controls.Add(box); Controls.Add(button);
         }
 
@@ -273,9 +335,9 @@ namespace Aion2CNTool
         void ShowStatus(string text, bool? success)
         {
             statusBanner.Text = text;
-            if (success == true) { statusBanner.BackColor = Color.FromArgb(224, 247, 232); statusBanner.ForeColor = Color.FromArgb(20, 108, 55); }
-            else if (success == false) { statusBanner.BackColor = Color.FromArgb(242, 244, 247); statusBanner.ForeColor = Color.FromArgb(74, 85, 104); }
-            else { statusBanner.BackColor = Color.FromArgb(255, 235, 235); statusBanner.ForeColor = Color.FromArgb(170, 30, 30); }
+            if (success == true) { statusBanner.BackColor = Color.FromArgb(24, 74, 65); statusBanner.ForeColor = Color.FromArgb(137, 245, 193); }
+            else if (success == false) { statusBanner.BackColor = Color.FromArgb(31, 42, 65); statusBanner.ForeColor = Color.FromArgb(184, 201, 226); }
+            else { statusBanner.BackColor = Color.FromArgb(82, 38, 50); statusBanner.ForeColor = Color.FromArgb(255, 173, 188); }
         }
 
         string SteamPak { get { return Path.Combine(steam.Text.Trim(), @"Aion2\Content\Paks\L10N\Text\en-US\pakchunk502000-Windows_0_P.pak"); } }
