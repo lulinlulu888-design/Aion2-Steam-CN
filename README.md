@@ -4,7 +4,9 @@
 
 ## 下载
 
-**[下载 Aion2-Steam-CN v2.1.0 单文件安装版](./downloads/Aion2-Steam-CN-v2.1.0.exe?raw=1)**
+**[前往 v2.1.0 正式 Release 下载页面](https://github.com/lulinlulu888-design/Aion2-Steam-CN/releases/tag/v2.1.0)**
+
+在页面的 **Assets** 中点击 `Aion2-Steam-CN-v2.1.0.exe` 下载安装包。
 
 无需解压，退出游戏后双击运行。完整说明、校验值和常见问题见 **[中文下载页](./DOWNLOAD.md)**。
 
