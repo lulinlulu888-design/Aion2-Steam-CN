@@ -12,10 +12,10 @@ using System.Windows.Forms;
 using System.ComponentModel;
 using Microsoft.Win32;
 
-[assembly: AssemblyTitle("永恒之塔2 一键汉化工具")]
-[assembly: AssemblyDescription("台服官方繁中转简体，支持兼容性检测、安全备份与一键还原")]
+[assembly: AssemblyTitle("永恒之塔2 汉化工具")]
+[assembly: AssemblyDescription("《永恒之塔2》Steam / Global 版汉化工具，支持一键安装、更新、备份与还原")]
 [assembly: AssemblyCompany("Aion2CNTool")]
-[assembly: AssemblyProduct("永恒之塔2 一键汉化工具")]
+[assembly: AssemblyProduct("永恒之塔2 汉化工具")]
 [assembly: AssemblyVersion("2.3.0.0")]
 [assembly: AssemblyFileVersion("2.3.0.0")]
 
@@ -130,7 +130,7 @@ namespace Aion2CNTool
 
             var header = new GradientPanel { Dock = DockStyle.Top, Height = 116 };
             var logo = new PictureBox { Left = 22, Top = 14, Width = 86, Height = 86, SizeMode = PictureBoxSizeMode.Zoom, BackColor = Color.Transparent, Image = LoadLogo() };
-            var title = new Label { Text = "AION 2  简体中文工具", Font = new Font(Font.FontFamily, 20F, FontStyle.Bold), AutoSize = true, Left = 122, Top = 21, ForeColor = Color.White, BackColor = Color.Transparent };
+            var title = new Label { Text = "AION 2  汉化工具", Font = new Font(Font.FontFamily, 20F, FontStyle.Bold), AutoSize = true, Left = 122, Top = 21, ForeColor = Color.White, BackColor = Color.Transparent };
             var sub = new Label { Text = "Steam / Global  ·  安全安装、更新与一键还原", AutoSize = true, Left = 124, Top = 61, ForeColor = Color.FromArgb(174, 201, 235), BackColor = Color.Transparent };
             var version = new Label { Text = "工具 v" + ToolVersion + "   语言包 " + PayloadVersion, AutoSize = true, Left = 124, Top = 84, ForeColor = Color.FromArgb(125, 232, 255), BackColor = Color.Transparent };
             header.Controls.Add(logo); header.Controls.Add(title); header.Controls.Add(sub); header.Controls.Add(version); Controls.Add(header);
